@@ -94,3 +94,35 @@ jobs:
           gh release create "${{ github.ref_name }}" artifacts/* \
             --title "${{ github.ref_name }}" \
             --generate-notes
+
+  # Every push to main republishes a single rolling pre-release with the latest
+  # installers, so there's always exactly one place to grab the newest dev build
+  # without cluttering the Releases page with one entry per commit. Real,
+  # human-triggered version tags (job above) still produce proper releases.
+  prerelease:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: amethyst-music-*
+          merge-multiple: true
+
+      - name: Replace rolling pre-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete latest-build --yes --cleanup-tag || true
+          gh release create latest-build artifacts/* \
+            --title "Latest build ($(git rev-parse --short HEAD))" \
+            --notes "Automated pre-release build from commit ${{ github.sha }}. This is the newest build of main, not a stable release — use a tagged version if you want something more tested." \
+            --prerelease \
+            --target "${{ github.sha }}"

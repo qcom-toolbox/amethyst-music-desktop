@@ -57,7 +57,12 @@ pnpm dist:dir       # unpacked build, faster iteration
 Installers are written to `release/`. Cross-platform builds (macOS, Windows,
 Linux) run automatically in GitHub Actions on every push to `main` and on
 version tags (`v*`) — see [`.github/workflows/build.yml`](.github/workflows/build.yml).
-Tag pushes also publish a GitHub Release with the built installers attached.
+
+- Every push to `main` replaces a single rolling **`latest-build`** pre-release
+  with the newest installers — that's always where to grab the most recent
+  dev build.
+- Pushing a version tag (`v*`) instead publishes a proper, permanent GitHub
+  Release under that tag name.
 
 **No code signing is configured.** Unsigned builds will show an "unidentified
 developer" warning on macOS (right-click → Open to bypass) and a Windows
