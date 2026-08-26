@@ -56,22 +56,36 @@ function waitForHttp(url, timeoutMs = 30000) {
   });
 }
 
+function waitForFile(filePath, timeoutMs = 30000) {
+  const deadline = Date.now() + timeoutMs;
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      if (existsSync(filePath)) resolve();
+      else if (Date.now() > deadline) reject(new Error(`Timed out waiting for ${filePath}`));
+      else setTimeout(check, 150);
+    };
+    check();
+  });
+}
+
 async function main() {
   console.log("[dev] starting Vite renderer dev server...");
   spawnChild(bin("vite"), []);
   await waitForHttp("http://localhost:5173");
 
-  console.log("[dev] compiling main/preload...");
-  const tscBuild = spawnChild(bin("tsc"), ["-p", "tsconfig.node.json"]);
-  await new Promise((resolve, reject) => {
-    tscBuild.on("exit", (code) => (code === 0 ? resolve() : reject(new Error("tsc build failed"))));
-  });
-
-  console.log("[dev] watching main/preload for changes...");
+  // `--watch` mode already performs an initial build before watching, so these are
+  // started directly rather than building once and then again in watch mode.
+  console.log("[dev] compiling main & bundling preload (watch mode)...");
   spawnChild(bin("tsc"), ["-p", "tsconfig.node.json", "--watch", "--preserveWatchOutput"]);
+  // Preload is bundled (not just tsc-compiled) because Electron's sandboxed preload
+  // can't resolve local relative requires at runtime — see vite.preload.config.ts.
+  spawnChild(bin("vite"), ["build", "--config", "vite.preload.config.ts", "--watch"]);
+
+  const mainEntry = path.join(root, "dist", "main", "index.js");
+  const preloadEntry = path.join(root, "dist", "preload", "index.js");
+  await Promise.all([waitForFile(mainEntry), waitForFile(preloadEntry)]);
 
   let electronProc = null;
-  const mainEntry = path.join(root, "dist", "main", "index.js");
 
   function launchElectron() {
     if (electronProc && !electronProc.killed) electronProc.kill();

@@ -36,20 +36,36 @@ function createWindow(): void {
     }
   });
 
-  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        "Content-Security-Policy": [CSP]
-      }
+  // Only enforced on the real, built renderer (file:// load). The Vite dev server
+  // (used only for local development, see scripts/dev.mjs) injects an inline
+  // <script> for React Fast Refresh's preamble, which a strict CSP would block —
+  // dev mode doesn't need this hardening anyway since nothing is shipped from it.
+  if (!(isDev && process.env.ELECTRON_RENDERER_URL)) {
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          "Content-Security-Policy": [CSP]
+        }
+      });
     });
-  });
+  }
 
   // Any target="_blank"/window.open from the renderer opens in the OS browser instead
   // of spawning a new, less-sandboxed Electron window.
   win.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);
     return { action: "deny" };
+  });
+
+  win.webContents.on("console-message", (event) => {
+    console.log(`[renderer:${event.level}] ${event.message} (${event.sourceId}:${event.lineNumber})`);
+  });
+  win.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+    console.error(`[did-fail-load] ${errorCode} ${errorDescription} ${validatedURL}`);
+  });
+  win.webContents.on("render-process-gone", (_event, details) => {
+    console.error(`[render-process-gone] ${JSON.stringify(details)}`);
   });
 
   if (isDev && process.env.ELECTRON_RENDERER_URL) {
