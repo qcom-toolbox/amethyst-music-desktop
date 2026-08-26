@@ -1,0 +1,39 @@
+# Supply-chain hardening (pnpm 11+):
+#
+# `minimumReleaseAge` refuses to install any package version published more
+# recently than this many minutes ago. Most malicious/compromised npm
+# publishes are caught and unpublished within hours to a few days, so simply
+# refusing to install anything that fresh closes off a real, common attack
+# path with zero ongoing effort. Every dependency version pinned in
+# package.json is deliberately chosen to already be older than this.
+minimumReleaseAge: 10080 # 7 days, in minutes
+
+# Reviewed on 2026-08-26: these are all fast-moving, low-marginal-risk transitive
+# dependencies (Rollup's own official per-platform binaries published in lockstep
+# by the Rollup/Vite maintainers on every release, plus routine browser-data and
+# small utility packages) that would otherwise make a same-week `pnpm install`
+# flaky depending on exactly when their maintainers last shipped a patch. Direct,
+# deliberately-chosen dependencies in package.json are NOT exempted here — only
+# these transitive, auto-resolved packages are.
+minimumReleaseAgeExclude:
+  - rollup
+  - "@rollup/*"
+  - "@peculiar/*"
+  - electron-to-chromium
+  - node-abi
+  - caniuse-lite
+  - baseline-browser-mapping
+  - picomatch
+  - fast-uri
+  - "@xmldom/xmldom"
+
+# `allowBuilds` governs which packages are permitted to run install-time
+# lifecycle scripts (preinstall/install/postinstall) at all — pnpm blocks
+# every other package's scripts by default. Reviewed on 2026-08-26:
+allowBuilds:
+  # Selects vite's platform-specific prebuilt binary. Standard, required for
+  # vite to run, and does nothing beyond picking the right download.
+  esbuild: true
+  # Only builds Squirrel-based Windows installers, which this project doesn't
+  # use (electron-builder.yml targets nsis instead) — left disabled.
+  electron-winstaller: false
