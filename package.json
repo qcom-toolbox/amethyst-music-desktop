@@ -2,7 +2,7 @@
   "name": "amethyst-music-desktop",
   "productName": "Amethyst Music",
   "version": "0.1.0",
-  "description": "Unofficial Electron shell for self-hosted Amethyst Music servers, with saved-server login and Discord Rich Presence",
+  "description": "Official Electron desktop client for Amethyst Music servers, with saved-server login and Discord Rich Presence",
   "private": true,
   "author": {
     "name": "qcom-toolbox",

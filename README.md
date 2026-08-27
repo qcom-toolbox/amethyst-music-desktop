@@ -1,6 +1,6 @@
 # Amethyst Music Desktop
 
-An unofficial Electron shell for self-hosted [Amethyst Music](https://github.com/qcom-toolbox/Amethyst-Music)
+The official Electron desktop client for self-hosted [Amethyst Music](https://github.com/qcom-toolbox/Amethyst-Music)
 servers (a PHP/MySQL music server, forked from Purple Music). It loads the
 server's own real web UI directly — full feature parity for free, since it's
 the actual app — and adds the things a plain browser tab can't: a saved-server
