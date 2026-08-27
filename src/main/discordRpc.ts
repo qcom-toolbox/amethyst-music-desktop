@@ -7,7 +7,7 @@
 import { randomUUID } from "node:crypto";
 import net, { type Socket } from "node:net";
 import path from "node:path";
-import type { PlaybackPresence } from "../shared/types";
+import type { NowPlaying } from "../shared/types";
 
 const OP_HANDSHAKE = 0;
 const OP_FRAME = 1;
@@ -157,19 +157,19 @@ export class DiscordRpcClient {
     this.socket.write(encodeFrame(OP_FRAME, { cmd, args, nonce: randomUUID() }));
   }
 
-  setActivity(presence: PlaybackPresence): void {
+  setActivity(presence: NowPlaying): void {
     if (this.state !== "connected") return;
 
     const key = `${presence.title}::${presence.artist}`;
     let startedAt = this.startTimestamps.get(key);
     if (!startedAt) {
-      startedAt = Date.now() - presence.positionSeconds * 1000;
+      startedAt = Date.now() - presence.position * 1000;
       this.startTimestamps.clear();
       this.startTimestamps.set(key, startedAt);
     }
 
     const timestamps = presence.isPlaying
-      ? { start: startedAt, end: startedAt + presence.durationSeconds * 1000 }
+      ? { start: startedAt, end: startedAt + presence.duration * 1000 }
       : undefined;
 
     this.send("SET_ACTIVITY", {
@@ -179,7 +179,7 @@ export class DiscordRpcClient {
         state: presence.artist.slice(0, 128),
         assets: {
           large_image: "amethyst_logo",
-          large_text: presence.album ?? "Amethyst Music",
+          large_text: "Amethyst Music",
           small_image: presence.isPlaying ? "play" : "pause",
           small_text: presence.isPlaying ? "Playing" : "Paused"
         },

@@ -12,12 +12,11 @@ listed (Node/Electron builtins, or one of these) first.
 | `react` | UI rendering for the renderer process. Maintained by Meta, extremely high scrutiny, effectively no surprise transitive dependencies. |
 | `react-dom` | DOM renderer for React. Same trust profile as `react`. |
 
-That's the entire runtime dependency list. No HTTP client library (native `fetch`
-is available in both the main process and the Chromium renderer), no state
-management library (React context + hooks cover this app's needs), no UI kit, no
-icon library (icons are hand-written inline SVG in
-[`src/renderer/components/icons.tsx`](src/renderer/components/icons.tsx)), no
-date/utility library (`lodash`, `dayjs`, etc.).
+That's the entire runtime dependency list — used only for the small native
+"choose a server" shell UI (everything else is the actual loaded website, not
+our code). No HTTP client library (native `fetch` is available in both the
+main process and the Chromium renderer), no state management library, no UI
+kit, no icon library, no date/utility library (`lodash`, `dayjs`, etc.).
 
 ## Dev dependencies (`devDependencies`)
 
@@ -45,8 +44,10 @@ date/utility library (`lodash`, `dayjs`, etc.).
   main, and the Chromium renderer).
 - **`concurrently` / `wait-on` / `electron-vite`** (dev tooling) — replaced with a
   ~70-line hand-rolled dev orchestrator, see [`scripts/dev.mjs`](scripts/dev.mjs).
-- **A router library** — this app has ~5 screens; a small `useState`-based route
-  object in [`src/renderer/App.tsx`](src/renderer/App.tsx) is enough.
+- **A router library** — the app's own React UI is just a server picker and a
+  settings screen, toggled with a single `useState` in
+  [`src/renderer/App.tsx`](src/renderer/App.tsx); everything else is the real
+  server's own web app, loaded directly (see the README's "How it works").
 
 ## Ongoing hygiene
 

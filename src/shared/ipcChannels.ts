@@ -1,44 +1,22 @@
 export const IPC = {
-  // Servers
+  // Servers (renderer <-> main, our own shell UI only)
   listServers: "servers:list",
   addServer: "servers:add",
   removeServer: "servers:remove",
+  connectToServer: "servers:connect",
 
-  // Auth
-  login: "auth:login",
-  quickLogin: "auth:quickLogin",
-  logout: "auth:logout",
-  currentAccount: "auth:current",
-  hasSavedCredentials: "auth:hasSaved",
-
-  // Library
-  getTracks: "library:tracks",
-  getAlbums: "library:albums",
-  getAlbumTracks: "library:albumTracks",
-  incrementPlay: "library:incrementPlay",
-  streamUrl: "library:streamUrl",
-
-  // Playlists
-  getPlaylists: "playlists:list",
-  createPlaylist: "playlists:create",
-  renamePlaylist: "playlists:rename",
-  deletePlaylist: "playlists:delete",
-  setPlaylistVisibility: "playlists:visibility",
-  addTrackToPlaylist: "playlists:addTrack",
-  removeTrackFromPlaylist: "playlists:removeTrack",
-  reorderPlaylist: "playlists:reorder",
-
-  // Lyrics (third-party: lrclib.net, not the user's Amethyst server)
-  fetchLyrics: "lyrics:fetch",
-
-  // Discord RPC
+  // Discord RPC settings
   getDiscordSettings: "discord:getSettings",
   setDiscordSettings: "discord:setSettings",
-  updatePresence: "discord:updatePresence",
-  clearPresence: "discord:clearPresence",
 
   // App
-  getAppVersion: "app:version"
+  getAppVersion: "app:version",
+  switchServer: "app:switchServer",
+
+  // Sent one-way (ipcRenderer.send, not invoke) from the *loaded server page's*
+  // minimal reporter bridge — see src/preload/index.ts and src/main/webIntegration.ts.
+  reportNowPlaying: "web:nowPlaying",
+  reportLoginCapture: "web:loginCapture"
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

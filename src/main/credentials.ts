@@ -4,7 +4,6 @@ import path from "node:path";
 
 interface StoredEntry {
   username: string;
-  isAdmin: boolean;
   /** Base64 of the OS-encrypted (safeStorage) password blob. Never plaintext. */
   encryptedPassword: string;
 }
@@ -34,37 +33,31 @@ export function isSecureStorageAvailable(): boolean {
   return safeStorage.isEncryptionAvailable();
 }
 
-export async function saveAccount(
-  serverId: string,
-  username: string,
-  password: string,
-  isAdmin: boolean
-): Promise<boolean> {
+export async function saveAccount(serverId: string, username: string, password: string): Promise<boolean> {
   if (!isSecureStorageAvailable()) return false;
   const data = await readFileSafe();
   const encryptedPassword = safeStorage.encryptString(password).toString("base64");
-  data[serverId] = { username, isAdmin, encryptedPassword };
+  data[serverId] = { username, encryptedPassword };
   await writeFileSafe(data);
   return true;
 }
 
-export async function getAccountPublic(
-  serverId: string
-): Promise<{ username: string; isAdmin: boolean } | null> {
+export async function getAccountPublic(serverId: string): Promise<{ username: string } | null> {
   const data = await readFileSafe();
   const entry = data[serverId];
   if (!entry) return null;
-  return { username: entry.username, isAdmin: entry.isAdmin };
+  return { username: entry.username };
 }
 
-/** Decrypts and returns the password for building an authenticated API request. Main-process only — never sent to the renderer. */
-export async function getPassword(serverId: string): Promise<string | null> {
+/** Decrypts and returns the saved login for auto-filling the server's login form. Main-process only. */
+export async function getCredentials(serverId: string): Promise<{ username: string; password: string } | null> {
   const data = await readFileSafe();
   const entry = data[serverId];
   if (!entry) return null;
   if (!isSecureStorageAvailable()) return null;
   try {
-    return safeStorage.decryptString(Buffer.from(entry.encryptedPassword, "base64"));
+    const password = safeStorage.decryptString(Buffer.from(entry.encryptedPassword, "base64"));
+    return { username: entry.username, password };
   } catch {
     return null;
   }

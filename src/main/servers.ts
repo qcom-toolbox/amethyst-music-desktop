@@ -56,3 +56,17 @@ export async function removeServer(id: string): Promise<void> {
   data.servers = data.servers.filter((s) => s.id !== id);
   await writeFileSafe(data);
 }
+
+/** Quick reachability probe: does `<url>/index.php` respond at all? Best-effort only. */
+export async function pingServer(url: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(`${url}/index.php`, { method: "GET", signal: controller.signal });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}

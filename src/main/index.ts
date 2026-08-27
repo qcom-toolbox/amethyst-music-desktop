@@ -1,29 +1,32 @@
-import { app, BrowserWindow, session, shell } from "electron";
+import { app, BrowserWindow, Menu, session, shell } from "electron";
 import path from "node:path";
 import { registerIpcHandlers, initDiscordFromSettings } from "./ipc";
+import { setWindow, showServerPicker } from "./windowManager";
 
-const isDev = process.env.NODE_ENV === "development";
-
-// Amethyst servers are user-supplied and can be any host, so img-src/media-src must
-// allow arbitrary http(s) for cover art and audio streaming. Everything else — scripts,
-// styles, XHR/fetch from the renderer itself — stays locked to the bundled app content;
-// all real network calls to the configured server happen in the main process instead.
-const CSP = [
+// Only enforced on our own shell UI (the server picker, loaded from a bundled
+// file:// page). The real Amethyst web app we navigate to afterwards is a classic
+// server-rendered page full of inline <script>/<style>/onclick — there's no way to
+// keep a strict CSP without breaking it, so it gets none there. The important
+// security boundary is unaffected either way: contextIsolation + nodeIntegration:false
+// stay on for every navigation in this window, and the preload script exposes only
+// a minimal, one-way reporting bridge to that content — see src/preload/index.ts.
+const SHELL_CSP = [
   "default-src 'self'",
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: http: https:",
-  "media-src 'self' http: https:",
+  "img-src 'self' data:",
   "connect-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'"
 ].join("; ");
 
+let mainWindow: BrowserWindow | null = null;
+
 function createWindow(): void {
   const win = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: 1320,
+    height: 840,
     minWidth: 960,
     minHeight: 600,
     backgroundColor: "#0f0c1d",
@@ -35,45 +38,61 @@ function createWindow(): void {
       sandbox: true
     }
   });
+  mainWindow = win;
+  setWindow(win);
 
-  // Only enforced on the real, built renderer (file:// load). The Vite dev server
-  // (used only for local development, see scripts/dev.mjs) injects an inline
-  // <script> for React Fast Refresh's preamble, which a strict CSP would block —
-  // dev mode doesn't need this hardening anyway since nothing is shipped from it.
-  if (!(isDev && process.env.ELECTRON_RENDERER_URL)) {
-    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-      callback({
-        responseHeaders: {
-          ...details.responseHeaders,
-          "Content-Security-Policy": [CSP]
-        }
-      });
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    if (!details.url.startsWith("file://")) {
+      callback({});
+      return;
+    }
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        "Content-Security-Policy": [SHELL_CSP]
+      }
     });
-  }
+  });
 
-  // Any target="_blank"/window.open from the renderer opens in the OS browser instead
-  // of spawning a new, less-sandboxed Electron window.
   win.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url);
     return { action: "deny" };
   });
 
-  win.webContents.on("console-message", (event) => {
-    console.log(`[renderer:${event.level}] ${event.message} (${event.sourceId}:${event.lineNumber})`);
-  });
-  win.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
-    console.error(`[did-fail-load] ${errorCode} ${errorDescription} ${validatedURL}`);
-  });
   win.webContents.on("render-process-gone", (_event, details) => {
     console.error(`[render-process-gone] ${JSON.stringify(details)}`);
   });
+  win.webContents.on("console-message", (event) => {
+    console.log(`[renderer:${event.level}] ${event.message} (${event.sourceId}:${event.lineNumber})`);
+  });
 
-  if (isDev && process.env.ELECTRON_RENDERER_URL) {
-    void win.loadURL(process.env.ELECTRON_RENDERER_URL);
-    win.webContents.openDevTools({ mode: "detach" });
-  } else {
-    void win.loadFile(path.join(__dirname, "..", "renderer", "index.html"));
-  }
+  void showServerPicker();
+}
+
+function buildMenu(): void {
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: "Amethyst Music",
+      submenu: [
+        { label: "Switch Server…", click: () => void showServerPicker() },
+        { role: "reload" },
+        { type: "separator" },
+        { role: "quit" }
+      ]
+    },
+    {
+      label: "Edit",
+      submenu: [
+        { role: "undo" },
+        { role: "redo" },
+        { type: "separator" },
+        { role: "cut" },
+        { role: "copy" },
+        { role: "paste" }
+      ]
+    }
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 const gotLock = app.requestSingleInstanceLock();
@@ -81,17 +100,16 @@ if (!gotLock) {
   app.quit();
 } else {
   app.on("second-instance", () => {
-    const windows = BrowserWindow.getAllWindows();
-    if (windows.length > 0) {
-      const win = windows[0];
-      if (win.isMinimized()) win.restore();
-      win.focus();
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
     }
   });
 
   void app.whenReady().then(async () => {
     registerIpcHandlers();
     await initDiscordFromSettings();
+    buildMenu();
     createWindow();
 
     app.on("activate", () => {

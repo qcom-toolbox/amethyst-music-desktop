@@ -1,8 +1,8 @@
-import type { AmethystBridge } from "../preload/index";
+import type { AmethystShellBridge } from "../preload/index";
 
 declare global {
   interface Window {
-    amethyst: AmethystBridge;
+    amethyst: AmethystShellBridge;
   }
 }
 

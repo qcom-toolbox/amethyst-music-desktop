@@ -6,14 +6,12 @@ export interface AppSettings {
   discordEnabled: boolean;
   discordClientId: string;
   lastServerId: string | null;
-  volume: number;
 }
 
 const DEFAULTS: AppSettings = {
   discordEnabled: false,
   discordClientId: "",
-  lastServerId: null,
-  volume: 0.8
+  lastServerId: null
 };
 
 function filePath(): string {
