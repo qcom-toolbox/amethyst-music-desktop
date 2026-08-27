@@ -4,7 +4,7 @@ An unofficial Electron shell for self-hosted [Amethyst Music](https://github.com
 servers (a PHP/MySQL music server, forked from Purple Music). It loads the
 server's own real web UI directly — full feature parity for free, since it's
 the actual app — and adds the things a plain browser tab can't: a saved-server
-picker, secure auto-login, and Discord Rich Presence.
+picker, secure auto-login, OS media controls, and Discord Rich Presence.
 
 ## How it works
 
@@ -20,11 +20,22 @@ by reading the page's own DOM (never by modifying its code):
   save that login for next time — encrypted with your OS keychain
   (Keychain / DPAPI / libsecret via Electron's `safeStorage`), never in
   plain text. See [`src/main/webIntegration.ts`](src/main/webIntegration.ts).
-- **Discord Rich Presence**: a small script polls the page's own now-playing
+- **OS media controls**: the same script wires the page's `#mainAudio` element
+  up to the standard Web `MediaSession` API — that's what gets you the macOS
+  Control Center "Now Playing" widget, media keys, and AirPods controls, for
+  free from Chromium (also works on Windows' SMTC and Linux's MPRIS, no extra
+  code). Play/pause act on the real audio element directly; previous/next call
+  the page's own `prevTrack()`/`nextTrack()` — the same functions its own
+  buttons call.
+- **Discord Rich Presence**: the same script polls the page's own now-playing
   elements (`#mainAudio`, `#play-title`, `#play-status`, `#player-cover`)
   every few seconds and reports them back to the main process, which updates
-  your Discord status over a hand-rolled IPC client (no `discord-rpc`
-  package) — see [`src/main/discordRpc.ts`](src/main/discordRpc.ts).
+  your Discord status — including the *actual* track's cover art, passed
+  straight through as an image URL (the same technique Spotify's own Discord
+  integration uses; no pre-uploaded "Art Asset" needed) — over a hand-rolled
+  IPC client (no `discord-rpc` package). See
+  [`src/main/webIntegration.ts`](src/main/webIntegration.ts) and
+  [`src/main/discordRpc.ts`](src/main/discordRpc.ts).
 
 Because everything else — browsing, playback, playlists, the fullscreen
 player, themes, synced lyrics — is just the website itself, all of it works

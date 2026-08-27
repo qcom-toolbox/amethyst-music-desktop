@@ -172,17 +172,20 @@ export class DiscordRpcClient {
       ? { start: startedAt, end: startedAt + presence.duration * 1000 }
       : undefined;
 
+    // The actual album/track cover art from the user's library, passed straight
+    // through as an external image URL — Discord's client fetches and caches it
+    // itself, no pre-uploaded "Art Asset" needed (this is the same mechanism
+    // Spotify's own Discord integration uses to show real, per-track artwork).
+    const hasCover = /^https?:\/\//i.test(presence.cover);
+
     this.send("SET_ACTIVITY", {
       pid: process.pid,
       activity: {
         details: presence.title.slice(0, 128),
         state: presence.artist.slice(0, 128),
-        assets: {
-          large_image: "amethyst_logo",
-          large_text: "Amethyst Music",
-          small_image: presence.isPlaying ? "play" : "pause",
-          small_text: presence.isPlaying ? "Playing" : "Paused"
-        },
+        ...(hasCover
+          ? { assets: { large_image: presence.cover, large_text: "Amethyst Music" } }
+          : {}),
         ...(timestamps ? { timestamps } : {}),
         instance: false
       }

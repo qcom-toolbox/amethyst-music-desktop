@@ -44,29 +44,95 @@ function captureScript(): string {
   })();`;
 }
 
-/** Polls the page's own now-playing DOM (mini player bar) every few seconds and reports it back for Discord Rich Presence. */
+/**
+ * Polls the page's own now-playing DOM (mini player bar) every few seconds and:
+ *  - reports it back for Discord Rich Presence, and
+ *  - drives the OS "Now Playing" integration (macOS Control Center / media keys,
+ *    same on Windows' SMTC and Linux's MPRIS) via the standard Web MediaSession
+ *    API, which Chromium wires up to the OS for free — no native module needed.
+ * Play/pause/seek act directly on the real <audio id="mainAudio"> element;
+ * previous/next call the page's own global prevTrack()/nextTrack() (the same
+ * functions its own onclick="prevTrack()" buttons call).
+ */
 function pollerScript(): string {
   return `(function() {
     if (window.__amethystPollerInstalled) return;
     window.__amethystPollerInstalled = true;
+
+    const audio = document.getElementById('mainAudio');
+    let lastMetaKey = '';
+
+    if (audio && 'mediaSession' in navigator) {
+      navigator.mediaSession.setActionHandler('play', function() { audio.play(); });
+      navigator.mediaSession.setActionHandler('pause', function() { audio.pause(); });
+      navigator.mediaSession.setActionHandler('previoustrack', function() {
+        if (typeof window.prevTrack === 'function') window.prevTrack();
+      });
+      navigator.mediaSession.setActionHandler('nexttrack', function() {
+        if (typeof window.nextTrack === 'function') window.nextTrack();
+      });
+      try {
+        navigator.mediaSession.setActionHandler('seekbackward', function(details) {
+          audio.currentTime = Math.max(0, audio.currentTime - (details.seekOffset || 10));
+        });
+        navigator.mediaSession.setActionHandler('seekforward', function(details) {
+          audio.currentTime = Math.min(audio.duration || audio.currentTime, audio.currentTime + (details.seekOffset || 10));
+        });
+        navigator.mediaSession.setActionHandler('seekto', function(details) {
+          if (details.seekTime != null) audio.currentTime = details.seekTime;
+        });
+      } catch (e) {}
+    }
+
     setInterval(function() {
-      if (!window.__amethystReporter) return;
-      const audio = document.getElementById('mainAudio');
       const titleEl = document.getElementById('play-title');
       const statusEl = document.getElementById('play-status');
       const coverEl = document.getElementById('player-cover');
-      if (!audio || !audio.currentSrc) { window.__amethystReporter.nowPlaying(null); return; }
+
+      if (!audio || !audio.currentSrc) {
+        if (window.__amethystReporter) window.__amethystReporter.nowPlaying(null);
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
+        return;
+      }
+
       const title = (titleEl && titleEl.innerText) || '';
       const artist = ((statusEl && statusEl.textContent) || '').split('\\u2022')[0].trim();
       const cover = (coverEl && coverEl.src) || '';
-      window.__amethystReporter.nowPlaying({
-        title: title,
-        artist: artist,
-        cover: cover,
-        isPlaying: !audio.paused,
-        position: audio.currentTime || 0,
-        duration: audio.duration || 0
-      });
+
+      if (window.__amethystReporter) {
+        window.__amethystReporter.nowPlaying({
+          title: title,
+          artist: artist,
+          cover: cover,
+          isPlaying: !audio.paused,
+          position: audio.currentTime || 0,
+          duration: audio.duration || 0
+        });
+      }
+
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
+        const metaKey = title + '::' + artist + '::' + cover;
+        if (metaKey !== lastMetaKey) {
+          lastMetaKey = metaKey;
+          try {
+            navigator.mediaSession.metadata = new MediaMetadata({
+              title: title,
+              artist: artist,
+              artwork: cover ? [{ src: cover, sizes: '512x512', type: 'image/png' }] : []
+            });
+          } catch (e) {}
+        }
+        if (audio.duration && isFinite(audio.duration)) {
+          try {
+            navigator.mediaSession.setPositionState({
+              duration: audio.duration,
+              playbackRate: audio.playbackRate || 1,
+              position: Math.min(audio.currentTime || 0, audio.duration)
+            });
+          } catch (e) {}
+        }
+      }
     }, 4000);
   })();`;
 }
