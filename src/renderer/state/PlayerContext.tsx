@@ -21,6 +21,10 @@ function shuffledOrderKeepingFirst(length: number, first: number): number[] {
 
 interface PlayerContextValue {
   queue: Track[];
+  /** `queue` re-ordered to match actual playback order (shuffle-aware) — what the fullscreen player's queue tab shows. */
+  orderedQueue: Track[];
+  /** Index of the currently playing track within `orderedQueue`. */
+  currentOrderIndex: number;
   currentTrack: Track | null;
   isPlaying: boolean;
   shuffle: boolean;
@@ -29,6 +33,8 @@ interface PlayerContextValue {
   position: number;
   duration: number;
   playQueue: (tracks: Track[], startIndex: number) => void;
+  /** Jump directly to a track by its position in `orderedQueue`. */
+  jumpTo: (orderIndex: number) => void;
   togglePlay: () => void;
   next: () => void;
   prev: () => void;
@@ -120,6 +126,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       if (track) void loadAndPlay(track);
     },
     [shuffle, loadAndPlay]
+  );
+
+  const orderedQueue = useMemo(() => order.map((i) => queue[i]).filter((t): t is Track => Boolean(t)), [order, queue]);
+
+  const jumpTo = useCallback(
+    (orderIndex: number) => {
+      if (orderIndex < 0 || orderIndex >= order.length) return;
+      setCurrentIndex(orderIndex);
+      const track = queue[order[orderIndex]];
+      if (track) void loadAndPlay(track);
+    },
+    [order, queue, loadAndPlay]
   );
 
   const advance = useCallback(
@@ -238,6 +256,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const value = useMemo<PlayerContextValue>(
     () => ({
       queue,
+      orderedQueue,
+      currentOrderIndex: currentIndex,
       currentTrack,
       isPlaying,
       shuffle,
@@ -246,6 +266,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       position,
       duration,
       playQueue,
+      jumpTo,
       togglePlay,
       next,
       prev,
@@ -256,6 +277,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }),
     [
       queue,
+      orderedQueue,
+      currentIndex,
       currentTrack,
       isPlaying,
       shuffle,
@@ -264,6 +287,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       position,
       duration,
       playQueue,
+      jumpTo,
       togglePlay,
       next,
       prev,

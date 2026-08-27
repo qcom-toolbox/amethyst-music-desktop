@@ -18,6 +18,14 @@ Electron + React/TypeScript — not a webview wrapper around the PHP web app.
   an artist, or a playlist).
 - Playlists: create, rename, delete, toggle public/private, add/remove
   tracks, reorder.
+- Fullscreen "now playing" view: click the mini player bar to open it — big
+  cover art with a blurred ambient background, a queue tab (jump to any
+  upcoming track), and a synced-lyrics tab (via the free
+  [lrclib.net](https://lrclib.net) API, toggleable in Settings).
+- Themes: 12 preset colors plus "Adaptive", which re-derives the whole color
+  scheme (panel, primary, accent, borders, text) from whatever's currently
+  playing's cover art — same HSL-derivation and WCAG-contrast math as the web
+  app's theme engine, ported in [`src/renderer/theme/`](src/renderer/theme).
 - Discord Rich Presence showing the current track, artist, and play/pause
   state.
 

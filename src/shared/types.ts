@@ -61,6 +61,11 @@ export interface DiscordSettings {
   clientId: string;
 }
 
+export interface LyricsResult {
+  status: "found" | "not_found" | "error";
+  lrc?: string;
+}
+
 export interface PlaybackPresence {
   title: string;
   artist: string;

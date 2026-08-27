@@ -5,6 +5,7 @@ import type {
   ApiStatusResult,
   DiscordSettings,
   LoginResult,
+  LyricsResult,
   PlaybackPresence,
   Playlist,
   ServerConfig,
@@ -47,6 +48,9 @@ export interface AmethystBridge {
     updatePresence: (presence: PlaybackPresence) => Promise<void>;
     clearPresence: () => Promise<void>;
   };
+  lyrics: {
+    fetch: (artist: string, title: string) => Promise<LyricsResult>;
+  };
   app: {
     getVersion: () => Promise<string>;
   };
@@ -87,6 +91,9 @@ const bridge: AmethystBridge = {
     setSettings: (settings) => ipcRenderer.invoke(IPC.setDiscordSettings, settings),
     updatePresence: (presence) => ipcRenderer.invoke(IPC.updatePresence, presence),
     clearPresence: () => ipcRenderer.invoke(IPC.clearPresence)
+  },
+  lyrics: {
+    fetch: (artist, title) => ipcRenderer.invoke(IPC.fetchLyrics, artist, title)
   },
   app: {
     getVersion: () => ipcRenderer.invoke(IPC.getAppVersion)

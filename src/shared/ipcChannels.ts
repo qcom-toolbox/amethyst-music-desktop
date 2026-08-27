@@ -28,6 +28,9 @@ export const IPC = {
   removeTrackFromPlaylist: "playlists:removeTrack",
   reorderPlaylist: "playlists:reorder",
 
+  // Lyrics (third-party: lrclib.net, not the user's Amethyst server)
+  fetchLyrics: "lyrics:fetch",
+
   // Discord RPC
   getDiscordSettings: "discord:getSettings",
   setDiscordSettings: "discord:setSettings",

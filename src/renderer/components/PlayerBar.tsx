@@ -17,12 +17,19 @@ function formatTime(seconds: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-export default function PlayerBar() {
+export default function PlayerBar({ onOpenFullscreen }: { onOpenFullscreen: () => void }) {
   const player = usePlayer();
   const { currentTrack } = player;
 
+  const handleBarClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!currentTrack) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button, input")) return;
+    onOpenFullscreen();
+  };
+
   return (
-    <div className="player-bar">
+    <div className="player-bar" onClick={handleBarClick} style={{ cursor: currentTrack ? "pointer" : "default" }}>
       <div className="player-track-info">
         {currentTrack ? (
           <>

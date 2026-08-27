@@ -2,8 +2,10 @@ import { useState } from "react";
 import { AuthProvider, useAuth } from "./state/AuthContext";
 import { LibraryProvider } from "./state/LibraryContext";
 import { PlayerProvider } from "./state/PlayerContext";
+import { ThemeProvider } from "./state/ThemeContext";
 import Sidebar from "./components/Sidebar";
 import PlayerBar from "./components/PlayerBar";
+import FullscreenPlayer from "./components/FullscreenPlayer";
 import AuthFlow from "./pages/AuthFlow";
 import Library from "./pages/Library";
 import Albums from "./pages/Albums";
@@ -70,6 +72,7 @@ function MainApp() {
 
 function Shell() {
   const { loading, account } = useAuth();
+  const [fullscreenOpen, setFullscreenOpen] = useState(false);
 
   if (loading) return <div className="center-screen">Loading…</div>;
   if (!account) return <AuthFlow />;
@@ -77,10 +80,13 @@ function Shell() {
   return (
     <LibraryProvider>
       <PlayerProvider>
-        <div className="app-shell">
-          <MainApp />
-          <PlayerBar />
-        </div>
+        <ThemeProvider>
+          <div className="app-shell">
+            <MainApp />
+            <PlayerBar onOpenFullscreen={() => setFullscreenOpen(true)} />
+            <FullscreenPlayer open={fullscreenOpen} onClose={() => setFullscreenOpen(false)} />
+          </div>
+        </ThemeProvider>
       </PlayerProvider>
     </LibraryProvider>
   );

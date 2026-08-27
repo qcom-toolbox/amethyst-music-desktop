@@ -1,5 +1,40 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../state/AuthContext";
+import { useTheme } from "../state/ThemeContext";
+import { THEME_PRESETS } from "../theme/presets";
+import { isLyricsEnabled, setLyricsEnabled } from "../lib/lyricsSettings";
+
+function swatchStyle(base: string | null): React.CSSProperties {
+  if (base === "adaptive") {
+    return { background: "conic-gradient(from 0deg, #ff5f6d, #ffc371, #47e0a7, #4facfe, #a86bff, #ff5f6d)" };
+  }
+  if (base === null) {
+    return { background: "linear-gradient(135deg, #8e44ad, #bb86fc)" };
+  }
+  return { background: base };
+}
+
+function ThemePicker() {
+  const { currentBase, setTheme } = useTheme();
+
+  return (
+    <div className="theme-swatch-grid">
+      {THEME_PRESETS.map((preset) => {
+        const isActive = preset.base === currentBase || (preset.base === null && !currentBase);
+        return (
+          <div
+            key={preset.name}
+            className={`theme-swatch ${isActive ? "active" : ""}`}
+            onClick={() => setTheme(preset.base)}
+          >
+            <div className="swatch-circle" style={swatchStyle(preset.base)} />
+            <span>{preset.name}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function Settings() {
   const { account } = useAuth();
@@ -7,6 +42,7 @@ export default function Settings() {
   const [clientId, setClientId] = useState("");
   const [version, setVersion] = useState("");
   const [saved, setSaved] = useState(false);
+  const [lyricsEnabled, setLyricsEnabledState] = useState(isLyricsEnabled);
 
   useEffect(() => {
     void window.amethyst.discord.getSettings().then((s) => {
@@ -27,11 +63,39 @@ export default function Settings() {
       <div className="content-header">
         <h2>Settings</h2>
       </div>
-      <div className="content-body" style={{ maxWidth: 520 }}>
+      <div className="content-body" style={{ maxWidth: 620 }}>
         <h3>Account</h3>
         <p className="track-artist">
           Signed in as <strong>{account?.username}</strong> on {account?.server.name} ({account?.server.url})
         </p>
+
+        <h3 style={{ marginTop: 32 }}>Theme</h3>
+        <p className="track-artist">
+          Pick a color and the rest of the interface (panels, buttons, text) is derived automatically. "Adaptive"
+          re-themes the app to match whatever's currently playing.
+        </p>
+        <ThemePicker />
+
+        <h3 style={{ marginTop: 32 }}>Lyrics</h3>
+        <p className="track-artist">
+          Synced lyrics are looked up on{" "}
+          <a href="https://lrclib.net" target="_blank" rel="noreferrer">
+            lrclib.net
+          </a>
+          , a free public lyrics database — the track title and artist are sent there, never your server credentials.
+        </p>
+        <div className="checkbox-row" style={{ margin: "12px 0" }}>
+          <input
+            type="checkbox"
+            id="lyrics-enabled"
+            checked={lyricsEnabled}
+            onChange={(e) => {
+              setLyricsEnabledState(e.target.checked);
+              setLyricsEnabled(e.target.checked);
+            }}
+          />
+          <label htmlFor="lyrics-enabled">Show synced lyrics in the fullscreen player</label>
+        </div>
 
         <h3 style={{ marginTop: 32 }}>Discord Rich Presence</h3>
         <p className="track-artist">

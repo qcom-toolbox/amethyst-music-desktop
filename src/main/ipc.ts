@@ -6,6 +6,7 @@ import * as credentials from "./credentials";
 import * as appSettings from "./appSettings";
 import * as api from "./amethystApi";
 import { discordRpc } from "./discordRpc";
+import { fetchLyrics } from "./lyrics";
 
 let activeServerId: string | null = null;
 
@@ -178,6 +179,8 @@ export function registerIpcHandlers(): void {
     const creds = await requireCreds(server.id);
     return api.reorderPlaylist(server.url, creds, playlistId, songIds);
   });
+
+  ipcMain.handle(IPC.fetchLyrics, (_e, artist: string, title: string) => fetchLyrics(artist, title));
 
   ipcMain.handle(IPC.getDiscordSettings, async (): Promise<DiscordSettings> => {
     const settings = await appSettings.getSettings();
