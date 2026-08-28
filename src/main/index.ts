@@ -87,6 +87,7 @@ function buildMenu(): void {
       submenu: [
         { label: "Switch Server…", click: () => void showServerPicker() },
         { role: "reload" },
+        { label: "Toggle Developer Tools", accelerator: "CmdOrCtrl+Alt+I", role: "toggleDevTools" },
         { type: "separator" },
         { role: "quit" }
       ]

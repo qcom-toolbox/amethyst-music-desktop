@@ -59,8 +59,12 @@ function pollerScript(): string {
     if (window.__amethystPollerInstalled) return;
     window.__amethystPollerInstalled = true;
 
+    const log = function(msg) { console.log('[amethyst-poller] ' + msg); };
+
     const audio = document.getElementById('mainAudio');
     let lastMetaKey = '';
+
+    log('mainAudio found: ' + Boolean(audio) + ', mediaSession available: ' + ('mediaSession' in navigator));
 
     if (audio && 'mediaSession' in navigator) {
       navigator.mediaSession.setActionHandler('play', function() { audio.play(); });
@@ -81,7 +85,10 @@ function pollerScript(): string {
         navigator.mediaSession.setActionHandler('seekto', function(details) {
           if (details.seekTime != null) audio.currentTime = details.seekTime;
         });
-      } catch (e) {}
+        log('action handlers registered OK');
+      } catch (e) {
+        log('setActionHandler threw: ' + e);
+      }
     }
 
     setInterval(function() {
@@ -121,7 +128,10 @@ function pollerScript(): string {
               artist: artist,
               artwork: cover ? [{ src: cover, sizes: '512x512', type: 'image/png' }] : []
             });
-          } catch (e) {}
+            log('metadata set: "' + title + '" by "' + artist + '", cover=' + (cover || '(none)'));
+          } catch (e) {
+            log('MediaMetadata threw: ' + e);
+          }
         }
         if (audio.duration && isFinite(audio.duration)) {
           try {
@@ -130,7 +140,9 @@ function pollerScript(): string {
               playbackRate: audio.playbackRate || 1,
               position: Math.min(audio.currentTime || 0, audio.duration)
             });
-          } catch (e) {}
+          } catch (e) {
+            log('setPositionState threw: ' + e);
+          }
         }
       }
     }, 4000);
