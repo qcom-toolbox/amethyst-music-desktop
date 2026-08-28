@@ -212,6 +212,15 @@ export class DiscordRpcClient {
     this.send("SET_ACTIVITY", {
       pid: process.pid,
       activity: {
+        // type: 2 = Listening (Discord shows "Listening to <Application Name>" as
+        // the header instead of the default "Playing <Application Name>"). The
+        // <Application Name> part is fixed to whatever the Discord Application is
+        // named in the Developer Portal — Discord doesn't let RPC clients override
+        // it per-update (this is deliberate on their end, so the header reliably
+        // identifies which app is reporting; it's why Spotify's own integration
+        // says "Listening to Spotify", not "Listening to <song>" either). The song
+        // title/artist go in details/state below, which is the part we do control.
+        type: 2,
         details: presence.title.slice(0, 128),
         state: presence.artist.slice(0, 128),
         ...(hasCover
