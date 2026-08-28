@@ -8,6 +8,7 @@ directories:
 
 files:
   - dist/**/*
+  - build/icon.png
   - package.json
 
 # No code-signing certificates are configured. Built apps will show an

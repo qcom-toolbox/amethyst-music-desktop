@@ -1,11 +1,11 @@
 # Build resources
 
-Drop platform icons here and electron-builder will pick them up automatically:
+`icon.png` (1024×1024) is the app icon. electron-builder auto-generates the
+platform-specific formats from it at build time — `.icns` for macOS, `.ico`
+for Windows, and the PNG directly for Linux — so there's nothing else to
+generate by hand. `src/main/index.ts` also loads this same file directly for
+the window/dock icon during `pnpm dev` and on Windows/Linux.
 
-- `icon.icns` — macOS (1024×1024 source recommended)
-- `icon.ico` — Windows
-- `icon.png` — Linux (512×512 recommended)
-
-Until these exist, electron-builder falls back to its own default Electron
-icon, which is fine for local testing but should be replaced before a public
-release.
+If you ever want more control over the macOS/Windows icons specifically
+(e.g. hand-tuned per-size artwork), drop `icon.icns` / `icon.ico` here and
+electron-builder will prefer those over auto-generating from `icon.png`.

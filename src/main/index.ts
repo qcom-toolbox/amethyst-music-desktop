@@ -1,7 +1,17 @@
-import { app, BrowserWindow, Menu, session, shell } from "electron";
+import { app, BrowserWindow, Menu, nativeImage, session, shell } from "electron";
 import path from "node:path";
 import { registerIpcHandlers, initDiscordFromSettings } from "./ipc";
 import { setWindow, showServerPicker } from "./windowManager";
+
+// electron-builder auto-generates the packaged .icns/.ico from this same file
+// (see build/README.md) — this is only for the window/taskbar icon on
+// Windows/Linux and the Dock icon while running `pnpm dev` (a packaged macOS
+// app gets its Dock icon from the .icns bundled by electron-builder instead).
+// __dirname is always dist/main (this compiled file's own directory) in both
+// dev and packaged builds, with build/icon.png two levels up in both — unlike
+// app.getAppPath(), which resolves to dist/main itself (the entry script's
+// directory) rather than the project/asar root when launched this way.
+const appIcon = nativeImage.createFromPath(path.join(__dirname, "..", "..", "build", "icon.png"));
 
 // Only enforced on our own shell UI (the server picker, loaded from a bundled
 // file:// page). The real Amethyst web app we navigate to afterwards is a classic
@@ -31,6 +41,7 @@ function createWindow(): void {
     minHeight: 600,
     backgroundColor: "#0f0c1d",
     autoHideMenuBar: true,
+    ...(appIcon.isEmpty() ? {} : { icon: appIcon }),
     webPreferences: {
       preload: path.join(__dirname, "..", "preload", "index.js"),
       contextIsolation: true,
@@ -107,6 +118,7 @@ if (!gotLock) {
   });
 
   void app.whenReady().then(async () => {
+    if (process.platform === "darwin" && !appIcon.isEmpty()) app.dock?.setIcon(appIcon);
     registerIpcHandlers();
     await initDiscordFromSettings();
     buildMenu();
