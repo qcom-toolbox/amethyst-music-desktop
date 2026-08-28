@@ -108,8 +108,11 @@ follow-up once you have one — see electron-builder's
 1. Create a free application at
    [discord.com/developers/applications](https://discord.com/developers/applications).
 2. Copy its **Application ID**.
-3. In the app, click the ⚙ in the top-right corner → paste the ID into
-   "Discord Application Client ID" and enable Rich Presence.
+3. Open Settings — the ⚙ in the top-right corner of the server picker, or
+   **Amethyst Music → Settings…** (⌘,) from the app menu at any time, including
+   while connected to a server — and paste the ID into "Discord Application
+   Client ID" and enable Rich Presence. The status line underneath tells you
+   immediately whether it connected or why not.
 
 ## Project layout
 

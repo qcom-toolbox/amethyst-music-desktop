@@ -5,7 +5,7 @@ import * as servers from "./servers";
 import * as appSettings from "./appSettings";
 import { discordRpc } from "./discordRpc";
 import * as webIntegration from "./webIntegration";
-import { connectToServer as navigateToServer } from "./windowManager";
+import { connectToServer as navigateToServer, openSettingsWindow } from "./windowManager";
 
 export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.listServers, () => servers.listServers());
@@ -43,6 +43,8 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.getDiscordStatus, (): DiscordRpcStatus => discordRpc.getStatus());
 
   ipcMain.handle(IPC.getAppVersion, () => app.getVersion());
+
+  ipcMain.handle(IPC.openSettingsWindow, () => openSettingsWindow());
 
   // One-way reports from the *loaded server page's* minimal reporter bridge
   // (window.__amethystReporter, see src/preload/index.ts) — not the renderer app.

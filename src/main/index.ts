@@ -1,7 +1,7 @@
 import { app, BrowserWindow, Menu, nativeImage, session, shell } from "electron";
 import path from "node:path";
 import { registerIpcHandlers, initDiscordFromSettings } from "./ipc";
-import { setWindow, showServerPicker } from "./windowManager";
+import { openSettingsWindow, setWindow, showServerPicker } from "./windowManager";
 
 // electron-builder auto-generates the packaged .icns/.ico from this same file
 // (see build/README.md) — this is only for the window/taskbar icon on
@@ -86,6 +86,7 @@ function buildMenu(): void {
       label: "Amethyst Music",
       submenu: [
         { label: "Switch Server…", click: () => void showServerPicker() },
+        { label: "Settings…", accelerator: "CmdOrCtrl+,", click: () => void openSettingsWindow() },
         { role: "reload" },
         { label: "Toggle Developer Tools", accelerator: "CmdOrCtrl+Alt+I", role: "toggleDevTools" },
         { type: "separator" },

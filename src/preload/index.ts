@@ -16,6 +16,7 @@ export interface AmethystShellBridge {
   };
   app: {
     getVersion: () => Promise<string>;
+    openSettingsWindow: () => Promise<void>;
   };
 }
 
@@ -45,7 +46,8 @@ if (location.protocol === "file:") {
       getStatus: () => ipcRenderer.invoke(IPC.getDiscordStatus)
     },
     app: {
-      getVersion: () => ipcRenderer.invoke(IPC.getAppVersion)
+      getVersion: () => ipcRenderer.invoke(IPC.getAppVersion),
+      openSettingsWindow: () => ipcRenderer.invoke(IPC.openSettingsWindow)
     }
   };
   contextBridge.exposeInMainWorld("amethyst", bridge);

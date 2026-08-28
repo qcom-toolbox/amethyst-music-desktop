@@ -12,6 +12,7 @@ export const IPC = {
 
   // App
   getAppVersion: "app:version",
+  openSettingsWindow: "app:openSettings",
 
   // Sent one-way (ipcRenderer.send, not invoke) from the *loaded server page's*
   // minimal reporter bridge — see src/preload/index.ts and src/main/webIntegration.ts.

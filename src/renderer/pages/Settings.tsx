@@ -96,7 +96,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
         <p className="hint-text">Amethyst Music Desktop v{version}</p>
         <p className="hint-text">
           <button type="button" className="link-btn" onClick={onClose}>
-            Back
+            Close
           </button>
         </p>
       </div>
