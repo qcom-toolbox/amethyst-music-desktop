@@ -7,7 +7,7 @@
 import { randomUUID } from "node:crypto";
 import net, { type Socket } from "node:net";
 import path from "node:path";
-import type { NowPlaying } from "../shared/types";
+import type { DiscordRpcStatus, NowPlaying } from "../shared/types";
 
 const OP_HANDSHAKE = 0;
 const OP_FRAME = 1;
@@ -46,11 +46,17 @@ export class DiscordRpcClient {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private wantConnected = false;
   private startTimestamps = new Map<string, number>();
+  private lastError: string | null = null;
+
+  getStatus(): DiscordRpcStatus {
+    return { enabled: this.wantConnected, state: this.state, lastError: this.lastError };
+  }
 
   setClientId(clientId: string): void {
     if (this.clientId !== clientId) {
       this.disconnect();
       this.clientId = clientId;
+      this.lastError = null;
     }
   }
 
@@ -61,6 +67,7 @@ export class DiscordRpcClient {
 
   disable(): void {
     this.wantConnected = false;
+    this.lastError = null;
     this.disconnect();
   }
 
@@ -75,6 +82,7 @@ export class DiscordRpcClient {
   private tryConnect(attempt = 0): void {
     if (!this.wantConnected || !this.clientId || this.state !== "idle") return;
     if (attempt > 9) {
+      this.lastError = "Discord doesn't appear to be running (no discord-ipc-N socket found).";
       this.scheduleReconnect();
       return;
     }
@@ -147,9 +155,32 @@ export class DiscordRpcClient {
   private handleFrame(opcode: number, payload: Buffer): void {
     if (opcode === OP_PING) {
       this.socket?.write(encodeFrame(OP_PONG, JSON.parse(payload.toString("utf8") || "{}")));
+      return;
     }
-    // DISPATCH/READY and command responses are informational only for this app —
-    // we fire-and-forget SET_ACTIVITY calls and don't need to correlate replies.
+
+    if (opcode === OP_CLOSE) {
+      // Discord rejects the handshake this way — most commonly {"code":4000,"message":"Invalid Client ID"}
+      // when the configured Client ID doesn't match a real registered Discord Application.
+      try {
+        const parsed = JSON.parse(payload.toString("utf8")) as { code?: number; message?: string };
+        this.lastError = parsed.message ? `Discord: ${parsed.message}` : "Discord closed the connection.";
+      } catch {
+        this.lastError = "Discord closed the connection.";
+      }
+      console.error(`[discordRpc] ${this.lastError}`);
+      return;
+    }
+
+    if (opcode === OP_FRAME) {
+      try {
+        const parsed = JSON.parse(payload.toString("utf8")) as { cmd?: string; evt?: string };
+        if (parsed.cmd === "DISPATCH" && parsed.evt === "READY") {
+          this.lastError = null;
+        }
+      } catch {
+        // non-JSON or unrecognized frame — nothing to act on
+      }
+    }
   }
 
   private send(cmd: string, args: object): void {

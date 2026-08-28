@@ -9,6 +9,13 @@ export interface DiscordSettings {
   clientId: string;
 }
 
+export interface DiscordRpcStatus {
+  enabled: boolean;
+  state: "idle" | "connecting" | "connected";
+  /** Human-readable reason the last connection attempt failed, e.g. Discord's own "Invalid Client ID". Cleared on a successful connect. */
+  lastError: string | null;
+}
+
 export interface NowPlaying {
   title: string;
   artist: string;

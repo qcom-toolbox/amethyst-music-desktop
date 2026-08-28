@@ -1,6 +1,6 @@
 import { app, ipcMain } from "electron";
 import { IPC } from "../shared/ipcChannels";
-import type { DiscordSettings, NowPlaying } from "../shared/types";
+import type { DiscordRpcStatus, DiscordSettings, NowPlaying } from "../shared/types";
 import * as servers from "./servers";
 import * as appSettings from "./appSettings";
 import { discordRpc } from "./discordRpc";
@@ -39,6 +39,8 @@ export function registerIpcHandlers(): void {
     if (next.enabled && next.clientId) discordRpc.enable();
     else discordRpc.disable();
   });
+
+  ipcMain.handle(IPC.getDiscordStatus, (): DiscordRpcStatus => discordRpc.getStatus());
 
   ipcMain.handle(IPC.getAppVersion, () => app.getVersion());
 

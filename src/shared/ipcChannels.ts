@@ -8,10 +8,10 @@ export const IPC = {
   // Discord RPC settings
   getDiscordSettings: "discord:getSettings",
   setDiscordSettings: "discord:setSettings",
+  getDiscordStatus: "discord:getStatus",
 
   // App
   getAppVersion: "app:version",
-  switchServer: "app:switchServer",
 
   // Sent one-way (ipcRenderer.send, not invoke) from the *loaded server page's*
   // minimal reporter bridge — see src/preload/index.ts and src/main/webIntegration.ts.

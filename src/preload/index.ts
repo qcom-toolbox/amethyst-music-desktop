@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IPC } from "../shared/ipcChannels";
-import type { DiscordSettings, NowPlaying, ServerConfig } from "../shared/types";
+import type { DiscordRpcStatus, DiscordSettings, NowPlaying, ServerConfig } from "../shared/types";
 
 export interface AmethystShellBridge {
   servers: {
@@ -12,6 +12,7 @@ export interface AmethystShellBridge {
   discord: {
     getSettings: () => Promise<DiscordSettings>;
     setSettings: (settings: DiscordSettings) => Promise<void>;
+    getStatus: () => Promise<DiscordRpcStatus>;
   };
   app: {
     getVersion: () => Promise<string>;
@@ -40,7 +41,8 @@ if (location.protocol === "file:") {
     },
     discord: {
       getSettings: () => ipcRenderer.invoke(IPC.getDiscordSettings),
-      setSettings: (settings) => ipcRenderer.invoke(IPC.setDiscordSettings, settings)
+      setSettings: (settings) => ipcRenderer.invoke(IPC.setDiscordSettings, settings),
+      getStatus: () => ipcRenderer.invoke(IPC.getDiscordStatus)
     },
     app: {
       getVersion: () => ipcRenderer.invoke(IPC.getAppVersion)
