@@ -3,15 +3,28 @@ import path from "node:path";
 import { registerIpcHandlers, initDiscordFromSettings } from "./ipc";
 import { openSettingsWindow, setWindow, showServerPicker } from "./windowManager";
 
-// electron-builder auto-generates the packaged .icns/.ico from this same file
-// (see build/README.md) — this is only for the window/taskbar icon on
-// Windows/Linux and the Dock icon while running `pnpm dev` (a packaged macOS
-// app gets its Dock icon from the .icns bundled by electron-builder instead).
+// Two distinct icon designs on purpose (see build/README.md): build/icon.png is
+// used as-is for Windows/Linux (electron-builder auto-generates the packaged
+// .ico from it, and it's also the BrowserWindow taskbar icon there), while
+// macOS gets its own dedicated build/icon.icns for packaging — electron-builder
+// prefers that over auto-generating from icon.png when building for mac.
+// nativeImage can't actually decode .icns itself (confirmed empirically — it
+// silently returns an empty image), so our own runtime uses of the mac design
+// (the Dock icon while running `pnpm dev`, and the About panel) load
+// build/icon-macos-tahoe.png, a plain PNG extracted from that same .icns via
+// `sips`, instead. A packaged mac app's Dock icon still comes from the bundled
+// .icns automatically regardless — that path is handled entirely by macOS
+// itself, not by any of this nativeImage code.
 // __dirname is always dist/main (this compiled file's own directory) in both
-// dev and packaged builds, with build/icon.png two levels up in both — unlike
+// dev and packaged builds, with build/ two levels up in both — unlike
 // app.getAppPath(), which resolves to dist/main itself (the entry script's
 // directory) rather than the project/asar root when launched this way.
-const appIcon = nativeImage.createFromPath(path.join(__dirname, "..", "..", "build", "icon.png"));
+const buildDir = path.join(__dirname, "..", "..", "build");
+const windowIcon = nativeImage.createFromPath(path.join(buildDir, "icon.png"));
+const dockIcon =
+  process.platform === "darwin"
+    ? nativeImage.createFromPath(path.join(buildDir, "icon-macos-tahoe.png"))
+    : windowIcon;
 
 // Only enforced on our own shell UI (the server picker, loaded from a bundled
 // file:// page). The real Amethyst web app we navigate to afterwards is a classic
@@ -41,7 +54,7 @@ function createWindow(): void {
     minHeight: 600,
     backgroundColor: "#0f0c1d",
     autoHideMenuBar: true,
-    ...(appIcon.isEmpty() ? {} : { icon: appIcon }),
+    ...(windowIcon.isEmpty() ? {} : { icon: windowIcon }),
     webPreferences: {
       preload: path.join(__dirname, "..", "preload", "index.js"),
       contextIsolation: true,
@@ -87,7 +100,9 @@ function buildMenu(): void {
     version: app.getVersion(),
     copyright: "Copyright © qcom-toolbox",
     website: "https://github.com/qcom-toolbox/amethyst-music-desktop",
-    ...(appIcon.isEmpty() ? {} : { iconPath: path.join(__dirname, "..", "..", "build", "icon.png") })
+    ...(dockIcon.isEmpty()
+      ? {}
+      : { iconPath: path.join(buildDir, process.platform === "darwin" ? "icon-macos-tahoe.png" : "icon.png") })
   });
 
   const template: Electron.MenuItemConstructorOptions[] = [
@@ -131,7 +146,7 @@ if (!gotLock) {
   });
 
   void app.whenReady().then(async () => {
-    if (process.platform === "darwin" && !appIcon.isEmpty()) app.dock?.setIcon(appIcon);
+    if (process.platform === "darwin" && !dockIcon.isEmpty()) app.dock?.setIcon(dockIcon);
     registerIpcHandlers();
     await initDiscordFromSettings();
     buildMenu();
