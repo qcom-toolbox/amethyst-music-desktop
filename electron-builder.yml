@@ -9,7 +9,7 @@ directories:
 files:
   - dist/**/*
   - build/icon.png
-  - build/icon-macos-tahoe.png
+  - build/icon-macos.png
   - package.json
 
 # No code-signing certificates are configured. Built apps will show an

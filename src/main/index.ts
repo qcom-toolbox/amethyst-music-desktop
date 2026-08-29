@@ -8,13 +8,13 @@ import { openSettingsWindow, setWindow, showServerPicker } from "./windowManager
 // .ico from it, and it's also the BrowserWindow taskbar icon there), while
 // macOS gets its own dedicated build/icon.icns for packaging — electron-builder
 // prefers that over auto-generating from icon.png when building for mac.
-// nativeImage can't actually decode .icns itself (confirmed empirically — it
-// silently returns an empty image), so our own runtime uses of the mac design
-// (the Dock icon while running `pnpm dev`, and the About panel) load
-// build/icon-macos-tahoe.png, a plain PNG extracted from that same .icns via
-// `sips`, instead. A packaged mac app's Dock icon still comes from the bundled
-// .icns automatically regardless — that path is handled entirely by macOS
-// itself, not by any of this nativeImage code.
+// build/icon.icns is generated (via `iconutil`) from build/icon-macos.png, the
+// actual source artwork — nativeImage can't decode .icns itself (confirmed
+// empirically — it silently returns an empty image), so our own runtime uses of
+// the mac design (the Dock icon while running `pnpm dev`, and the About panel)
+// load that same source PNG directly instead. A packaged mac app's Dock icon
+// still comes from the bundled .icns automatically regardless — that path is
+// handled entirely by macOS itself, not by any of this nativeImage code.
 // __dirname is always dist/main (this compiled file's own directory) in both
 // dev and packaged builds, with build/ two levels up in both — unlike
 // app.getAppPath(), which resolves to dist/main itself (the entry script's
@@ -23,7 +23,7 @@ const buildDir = path.join(__dirname, "..", "..", "build");
 const windowIcon = nativeImage.createFromPath(path.join(buildDir, "icon.png"));
 const dockIcon =
   process.platform === "darwin"
-    ? nativeImage.createFromPath(path.join(buildDir, "icon-macos-tahoe.png"))
+    ? nativeImage.createFromPath(path.join(buildDir, "icon-macos.png"))
     : windowIcon;
 
 // Only enforced on our own shell UI (the server picker, loaded from a bundled
@@ -102,7 +102,7 @@ function buildMenu(): void {
     website: "https://github.com/qcom-toolbox/amethyst-music-desktop",
     ...(dockIcon.isEmpty()
       ? {}
-      : { iconPath: path.join(buildDir, process.platform === "darwin" ? "icon-macos-tahoe.png" : "icon.png") })
+      : { iconPath: path.join(buildDir, process.platform === "darwin" ? "icon-macos.png" : "icon.png") })
   });
 
   const template: Electron.MenuItemConstructorOptions[] = [
