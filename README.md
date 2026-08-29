@@ -20,6 +20,11 @@ by reading the page's own DOM (never by modifying its code):
   save that login for next time — encrypted with your OS keychain
   (Keychain / DPAPI / libsecret via Electron's `safeStorage`), never in
   plain text. See [`src/main/webIntegration.ts`](src/main/webIntegration.ts).
+  To force a fresh login for a server (switch accounts, or just sign out),
+  open the server picker (**Amethyst Music → Switch Server…**) and click
+  **Disconnect** next to that server — it wipes the saved credential and
+  clears that server's session cookie, without removing the server itself
+  from your list.
 - **OS media controls**: the same script wires the page's `#mainAudio` element
   up to the standard Web `MediaSession` API — that's what gets you the macOS
   Control Center "Now Playing" widget, media keys, and AirPods controls, for

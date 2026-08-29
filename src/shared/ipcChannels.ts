@@ -4,6 +4,8 @@ export const IPC = {
   addServer: "servers:add",
   removeServer: "servers:remove",
   connectToServer: "servers:connect",
+  getServerAccount: "servers:getAccount",
+  disconnectAccount: "servers:disconnectAccount",
 
   // Discord RPC settings
   getDiscordSettings: "discord:getSettings",

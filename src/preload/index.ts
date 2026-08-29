@@ -8,6 +8,8 @@ export interface AmethystShellBridge {
     add: (name: string, url: string) => Promise<{ server: ServerConfig; reachable: boolean }>;
     remove: (id: string) => Promise<void>;
     connect: (serverId: string) => Promise<{ ok: boolean }>;
+    getAccount: (serverId: string) => Promise<{ username: string } | null>;
+    disconnectAccount: (serverId: string) => Promise<void>;
   };
   discord: {
     getSettings: () => Promise<DiscordSettings>;
@@ -38,7 +40,9 @@ if (location.protocol === "file:") {
       list: () => ipcRenderer.invoke(IPC.listServers),
       add: (name, url) => ipcRenderer.invoke(IPC.addServer, name, url),
       remove: (id) => ipcRenderer.invoke(IPC.removeServer, id),
-      connect: (serverId) => ipcRenderer.invoke(IPC.connectToServer, serverId)
+      connect: (serverId) => ipcRenderer.invoke(IPC.connectToServer, serverId),
+      getAccount: (serverId) => ipcRenderer.invoke(IPC.getServerAccount, serverId),
+      disconnectAccount: (serverId) => ipcRenderer.invoke(IPC.disconnectAccount, serverId)
     },
     discord: {
       getSettings: () => ipcRenderer.invoke(IPC.getDiscordSettings),

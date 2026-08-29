@@ -1,8 +1,9 @@
-import { app, ipcMain } from "electron";
+import { app, ipcMain, session } from "electron";
 import { IPC } from "../shared/ipcChannels";
 import type { DiscordRpcStatus, DiscordSettings, NowPlaying } from "../shared/types";
 import * as servers from "./servers";
 import * as appSettings from "./appSettings";
+import * as credentials from "./credentials";
 import { discordRpc } from "./discordRpc";
 import * as webIntegration from "./webIntegration";
 import { connectToServer as navigateToServer, openSettingsWindow } from "./windowManager";
@@ -26,6 +27,18 @@ export function registerIpcHandlers(): void {
     if (!server) return { ok: false };
     await navigateToServer(server);
     return { ok: true };
+  });
+
+  ipcMain.handle(IPC.getServerAccount, (_e, serverId: string) => credentials.getAccountPublic(serverId));
+
+  ipcMain.handle(IPC.disconnectAccount, async (_e, serverId: string) => {
+    await credentials.clearAccount(serverId);
+    const all = await servers.listServers();
+    const server = all.find((s) => s.id === serverId);
+    if (server) {
+      const origin = new URL(server.url).origin;
+      await session.defaultSession.clearStorageData({ origin, storages: ["cookies"] });
+    }
   });
 
   ipcMain.handle(IPC.getDiscordSettings, async (): Promise<DiscordSettings> => {

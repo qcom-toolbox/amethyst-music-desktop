@@ -5,6 +5,7 @@ type Step = { kind: "pick" } | { kind: "add" };
 
 export default function ServerPicker() {
   const [servers, setServers] = useState<ServerConfig[]>([]);
+  const [accounts, setAccounts] = useState<Record<string, { username: string } | null>>({});
   const [step, setStep] = useState<Step>({ kind: "pick" });
   const [loading, setLoading] = useState(true);
   const [connectingTo, setConnectingTo] = useState<string | null>(null);
@@ -15,6 +16,10 @@ export default function ServerPicker() {
     setServers(list);
     setStep(list.length === 0 ? { kind: "add" } : { kind: "pick" });
     setLoading(false);
+    const entries = await Promise.all(
+      list.map(async (s) => [s.id, await window.amethyst.servers.getAccount(s.id)] as const)
+    );
+    setAccounts(Object.fromEntries(entries));
   };
 
   useEffect(() => {
@@ -40,11 +45,12 @@ export default function ServerPicker() {
       {step.kind === "pick" && (
         <PickServer
           servers={servers}
+          accounts={accounts}
           connectingTo={connectingTo}
           error={connectError}
           onSelect={connect}
           onAdd={() => setStep({ kind: "add" })}
-          onRemoved={refresh}
+          onChanged={refresh}
         />
       )}
       {step.kind === "add" && (
@@ -63,43 +69,62 @@ export default function ServerPicker() {
 
 function PickServer({
   servers,
+  accounts,
   connectingTo,
   error,
   onSelect,
   onAdd,
-  onRemoved
+  onChanged
 }: {
   servers: ServerConfig[];
+  accounts: Record<string, { username: string } | null>;
   connectingTo: string | null;
   error: string | null;
   onSelect: (s: ServerConfig) => void;
   onAdd: () => void;
-  onRemoved: () => void;
+  onChanged: () => void;
 }) {
   return (
     <div className="auth-card">
       <h1>Choose a server</h1>
       <p className="subtitle">Pick the Amethyst Music server you want to connect to.</p>
-      {servers.map((s) => (
-        <div className="server-row" key={s.id}>
-          <div
-            onClick={() => onSelect(s)}
-            style={{ cursor: "pointer", flex: 1, opacity: connectingTo && connectingTo !== s.id ? 0.5 : 1 }}
-          >
-            <div className="server-name">{s.name}</div>
-            <div className="server-url">{connectingTo === s.id ? "Connecting…" : s.url}</div>
+      {servers.map((s) => {
+        const account = accounts[s.id];
+        return (
+          <div className="server-row" key={s.id}>
+            <div
+              onClick={() => onSelect(s)}
+              style={{ cursor: "pointer", flex: 1, opacity: connectingTo && connectingTo !== s.id ? 0.5 : 1 }}
+            >
+              <div className="server-name">{s.name}</div>
+              <div className="server-url">
+                {connectingTo === s.id ? "Connecting…" : account ? `Signed in as ${account.username}` : s.url}
+              </div>
+            </div>
+            {account && (
+              <button
+                className="link-btn"
+                onClick={async () => {
+                  if (!confirm(`Disconnect the saved account "${account.username}" from ${s.name}?`)) return;
+                  await window.amethyst.servers.disconnectAccount(s.id);
+                  onChanged();
+                }}
+              >
+                Disconnect
+              </button>
+            )}
+            <button
+              className="link-btn"
+              onClick={async () => {
+                await window.amethyst.servers.remove(s.id);
+                onChanged();
+              }}
+            >
+              Remove
+            </button>
           </div>
-          <button
-            className="link-btn"
-            onClick={async () => {
-              await window.amethyst.servers.remove(s.id);
-              onRemoved();
-            }}
-          >
-            Remove
-          </button>
-        </div>
-      ))}
+        );
+      })}
       {error && <p className="error-text">{error}</p>}
       <button className="btn" style={{ width: "100%", marginTop: 12 }} onClick={onAdd}>
         + Add another server
