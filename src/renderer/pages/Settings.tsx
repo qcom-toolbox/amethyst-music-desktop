@@ -93,7 +93,23 @@ export default function Settings({ onClose }: { onClose: () => void }) {
         </button>
         <StatusLine status={status} />
 
-        <p className="hint-text">Amethyst Music Desktop v{version}</p>
+        <div style={{ borderTop: "1px solid var(--border)", marginTop: 24, paddingTop: 20, textAlign: "center" }}>
+          <img src="./icon.png" alt="" style={{ width: 56, height: 56, borderRadius: 14, marginBottom: 8 }} />
+          <p style={{ margin: 0, fontWeight: 600 }}>Amethyst Music Desktop</p>
+          <p className="hint-text" style={{ marginTop: 2 }}>Version {version}</p>
+          <p className="hint-text">
+            <a
+              href="https://github.com/qcom-toolbox/amethyst-music-desktop"
+              target="_blank"
+              rel="noreferrer"
+              className="link-btn"
+            >
+              github.com/qcom-toolbox/amethyst-music-desktop
+            </a>
+          </p>
+          <p className="hint-text">Copyright © qcom-toolbox · MIT License</p>
+        </div>
+
         <p className="hint-text">
           <button type="button" className="link-btn" onClick={onClose}>
             Close

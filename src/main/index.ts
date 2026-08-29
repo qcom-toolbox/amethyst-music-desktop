@@ -81,10 +81,21 @@ function createWindow(): void {
 }
 
 function buildMenu(): void {
+  app.setAboutPanelOptions({
+    applicationName: "Amethyst Music",
+    applicationVersion: app.getVersion(),
+    version: app.getVersion(),
+    copyright: "Copyright © qcom-toolbox",
+    website: "https://github.com/qcom-toolbox/amethyst-music-desktop",
+    ...(appIcon.isEmpty() ? {} : { iconPath: path.join(__dirname, "..", "..", "build", "icon.png") })
+  });
+
   const template: Electron.MenuItemConstructorOptions[] = [
     {
       label: "Amethyst Music",
       submenu: [
+        { role: "about" },
+        { type: "separator" },
         { label: "Switch Server…", click: () => void showServerPicker() },
         { label: "Settings…", accelerator: "CmdOrCtrl+,", click: () => void openSettingsWindow() },
         { role: "reload" },
