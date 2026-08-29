@@ -77,6 +77,12 @@ version tags (`v*`) — see [`.github/workflows/build.yml`](.github/workflows/bu
   dev build.
 - Pushing a version tag (`v*`) instead publishes a proper, permanent GitHub
   Release under that tag name.
+- To cut one of those without touching git tags yourself: go to the repo's
+  **Actions** tab → **Cut Release** → **Run workflow**, type a version number
+  (e.g. `0.2.0`), and run it — see
+  [`.github/workflows/release.yml`](.github/workflows/release.yml). It bumps
+  `package.json`, commits, tags, and pushes; the tag push then triggers the
+  build/release job above automatically.
 
 **No code signing is configured.** Unsigned builds will show an "unidentified
 developer" warning on macOS (right-click → Open to bypass) and a Windows
