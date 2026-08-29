@@ -209,12 +209,6 @@ export class DiscordRpcClient {
     // Spotify's own Discord integration uses to show real, per-track artwork).
     const hasCover = /^https?:\/\//i.test(presence.cover);
 
-    // Discord's Activity object only has two free-text lines (details/state) —
-    // there's no separate "album" line. Folding it into state as "Artist — Album"
-    // matches how other Listening-type integrations (Spotify, YouTube Music)
-    // display it; Discord's client word-wraps the combined string on its own.
-    const state = presence.album ? `${presence.artist} — ${presence.album}` : presence.artist;
-
     this.send("SET_ACTIVITY", {
       pid: process.pid,
       activity: {
@@ -227,7 +221,9 @@ export class DiscordRpcClient {
         type: 2,
         status_display_type: 2,
         details: presence.title.slice(0, 128),
-        state: state.slice(0, 128),
+        // Artist only — the album has its own line via assets.large_text below,
+        // so repeating it here would just be duplicated.
+        state: presence.artist.slice(0, 128),
         ...(hasCover
           ? { assets: { large_image: presence.cover, large_text: presence.album || "Amethyst Music" } }
           : {}),
