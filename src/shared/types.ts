@@ -19,6 +19,8 @@ export interface DiscordRpcStatus {
 export interface NowPlaying {
   title: string;
   artist: string;
+  /** Empty string when the track has no album. */
+  album: string;
   cover: string;
   isPlaying: boolean;
   position: number;

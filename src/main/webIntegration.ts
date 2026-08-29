@@ -102,14 +102,19 @@ function pollerScript(): string {
         return;
       }
 
+      // #play-status holds "<artist> • <album>" (bullet omitted when there's no
+      // album) — see artistLinksHTML()/albumLinkHTML() in the server's index.php.
+      const statusParts = ((statusEl && statusEl.textContent) || '').split('\\u2022');
       const title = (titleEl && titleEl.innerText) || '';
-      const artist = ((statusEl && statusEl.textContent) || '').split('\\u2022')[0].trim();
+      const artist = (statusParts[0] || '').trim();
+      const album = (statusParts[1] || '').trim();
       const cover = (coverEl && coverEl.src) || '';
 
       if (window.__amethystReporter) {
         window.__amethystReporter.nowPlaying({
           title: title,
           artist: artist,
+          album: album,
           cover: cover,
           isPlaying: !audio.paused,
           position: audio.currentTime || 0,
@@ -119,16 +124,17 @@ function pollerScript(): string {
 
       if ('mediaSession' in navigator) {
         navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
-        const metaKey = title + '::' + artist + '::' + cover;
+        const metaKey = title + '::' + artist + '::' + album + '::' + cover;
         if (metaKey !== lastMetaKey) {
           lastMetaKey = metaKey;
           try {
             navigator.mediaSession.metadata = new MediaMetadata({
               title: title,
               artist: artist,
+              album: album,
               artwork: cover ? [{ src: cover, sizes: '512x512', type: 'image/png' }] : []
             });
-            log('metadata set: "' + title + '" by "' + artist + '", cover=' + (cover || '(none)'));
+            log('metadata set: "' + title + '" by "' + artist + '"' + (album ? ' on "' + album + '"' : '') + ', cover=' + (cover || '(none)'));
           } catch (e) {
             log('MediaMetadata threw: ' + e);
           }
