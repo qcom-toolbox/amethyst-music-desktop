@@ -48,6 +48,7 @@ export class DiscordRpcClient {
   private startTimestamps = new Map<string, number>();
   private lastError: string | null = null;
   private showLyrics = false;
+  private lastActivityKey: string | null = null;
 
   getStatus(): DiscordRpcStatus {
     return { enabled: this.wantConnected, state: this.state, lastError: this.lastError };
@@ -110,6 +111,10 @@ export class DiscordRpcClient {
       this.socket = socket;
       this.state = "connected";
       this.recvBuffer = Buffer.alloc(0);
+      // A fresh connection means Discord has no activity set for us yet, so the
+      // next setActivity() must actually send even if it looks identical to
+      // whatever we last sent on a previous, now-dead connection.
+      this.lastActivityKey = null;
       socket.write(encodeFrame(OP_HANDSHAKE, { v: 1, client_id: this.clientId }));
       socket.on("data", (chunk) => this.onData(chunk));
       socket.on("close", () => this.onDisconnected());
@@ -216,7 +221,18 @@ export class DiscordRpcClient {
     // The current synced lyric line, when the option is on and one was found for
     // this position, takes over the cover art's hover-tooltip line in place of the
     // album name (Discord has no other free text line to put it on).
-    const largeText = (this.showLyrics && presence.lyric) || presence.album || "Amethyst Music";
+    const largeText = ((this.showLyrics && presence.lyric) || presence.album || "Amethyst Music").slice(0, 128);
+    const details = presence.title.slice(0, 128);
+    const state = presence.artist.slice(0, 128);
+
+    // The poller reports every second (see webIntegration.ts) so the lyric line
+    // can't lag noticeably behind the audio, but almost none of those ticks
+    // actually change what Discord should show — skip re-sending SET_ACTIVITY
+    // when nothing visible has changed, instead of hitting the local RPC socket
+    // once a second regardless.
+    const activityKey = `${details}::${state}::${hasCover ? largeText : ""}::${presence.isPlaying}`;
+    if (activityKey === this.lastActivityKey) return;
+    this.lastActivityKey = activityKey;
 
     this.send("SET_ACTIVITY", {
       pid: process.pid,
@@ -229,12 +245,12 @@ export class DiscordRpcClient {
         // https://discord.com/developers/docs/events/gateway-events#activity-object-status-display-types).
         type: 2,
         status_display_type: 2,
-        details: presence.title.slice(0, 128),
+        details: details,
         // Artist only — the album (or, optionally, the live lyric line) has its
         // own line via assets.large_text below, so repeating it here would just
         // be duplicated.
-        state: presence.artist.slice(0, 128),
-        ...(hasCover ? { assets: { large_image: presence.cover, large_text: largeText.slice(0, 128) } } : {}),
+        state: state,
+        ...(hasCover ? { assets: { large_image: presence.cover, large_text: largeText } } : {}),
         ...(timestamps ? { timestamps } : {}),
         instance: false
       }
@@ -243,6 +259,7 @@ export class DiscordRpcClient {
 
   clearActivity(): void {
     this.startTimestamps.clear();
+    this.lastActivityKey = null;
     if (this.state !== "connected") return;
     this.send("SET_ACTIVITY", { pid: process.pid, activity: null });
   }

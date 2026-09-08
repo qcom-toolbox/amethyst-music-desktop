@@ -63,11 +63,15 @@ function captureScript(): string {
 }
 
 /**
- * Polls the page's own now-playing DOM (mini player bar) every few seconds and:
+ * Polls the page's own now-playing DOM (mini player bar) every second and:
  *  - reports it back for Discord Rich Presence, and
  *  - drives the OS "Now Playing" integration (macOS Control Center / media keys,
  *    same on Windows' SMTC and Linux's MPRIS) via the standard Web MediaSession
  *    API, which Chromium wires up to the OS for free — no native module needed.
+ * Polling every second (rather than every few) is what keeps the optional
+ * Discord lyric line (see currentLyricLine() below) from skipping short lines
+ * or lagging noticeably behind the audio — discordRpc.ts dedupes so this
+ * doesn't turn into spamming Discord's local RPC socket with unchanged data.
  * Play/pause/seek act directly on the real <audio id="mainAudio"> element;
  * previous/next call the page's own global prevTrack()/nextTrack() (the same
  * functions its own onclick="prevTrack()" buttons call).
@@ -222,7 +226,7 @@ function pollerScript(): string {
           }
         }
       }
-    }, 4000);
+    }, 1000);
   })();`;
 }
 
