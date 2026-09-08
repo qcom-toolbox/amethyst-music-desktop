@@ -47,6 +47,7 @@ export class DiscordRpcClient {
   private wantConnected = false;
   private startTimestamps = new Map<string, number>();
   private lastError: string | null = null;
+  private showLyrics = false;
 
   getStatus(): DiscordRpcStatus {
     return { enabled: this.wantConnected, state: this.state, lastError: this.lastError };
@@ -58,6 +59,10 @@ export class DiscordRpcClient {
       this.clientId = clientId;
       this.lastError = null;
     }
+  }
+
+  setShowLyrics(value: boolean): void {
+    this.showLyrics = value;
   }
 
   enable(): void {
@@ -208,6 +213,10 @@ export class DiscordRpcClient {
     // itself, no pre-uploaded "Art Asset" needed (this is the same mechanism
     // Spotify's own Discord integration uses to show real, per-track artwork).
     const hasCover = /^https?:\/\//i.test(presence.cover);
+    // The current synced lyric line, when the option is on and one was found for
+    // this position, takes over the cover art's hover-tooltip line in place of the
+    // album name (Discord has no other free text line to put it on).
+    const largeText = (this.showLyrics && presence.lyric) || presence.album || "Amethyst Music";
 
     this.send("SET_ACTIVITY", {
       pid: process.pid,
@@ -221,12 +230,11 @@ export class DiscordRpcClient {
         type: 2,
         status_display_type: 2,
         details: presence.title.slice(0, 128),
-        // Artist only — the album has its own line via assets.large_text below,
-        // so repeating it here would just be duplicated.
+        // Artist only — the album (or, optionally, the live lyric line) has its
+        // own line via assets.large_text below, so repeating it here would just
+        // be duplicated.
         state: presence.artist.slice(0, 128),
-        ...(hasCover
-          ? { assets: { large_image: presence.cover, large_text: presence.album || "Amethyst Music" } }
-          : {}),
+        ...(hasCover ? { assets: { large_image: presence.cover, large_text: largeText.slice(0, 128) } } : {}),
         ...(timestamps ? { timestamps } : {}),
         instance: false
       }

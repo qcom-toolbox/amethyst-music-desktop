@@ -27,6 +27,7 @@ function StatusLine({ status }: { status: DiscordRpcStatus | null }) {
 export default function Settings({ onClose }: { onClose: () => void }) {
   const [discordEnabled, setDiscordEnabled] = useState(false);
   const [clientId, setClientId] = useState("");
+  const [showLyrics, setShowLyrics] = useState(false);
   const [version, setVersion] = useState("");
   const [saved, setSaved] = useState(false);
   const [status, setStatus] = useState<DiscordRpcStatus | null>(null);
@@ -35,6 +36,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
     void window.amethyst.discord.getSettings().then((s) => {
       setDiscordEnabled(s.enabled);
       setClientId(s.clientId);
+      setShowLyrics(s.showLyrics);
     });
     void window.amethyst.app.getVersion().then(setVersion);
   }, []);
@@ -55,7 +57,11 @@ export default function Settings({ onClose }: { onClose: () => void }) {
   }, []);
 
   const save = async () => {
-    await window.amethyst.discord.setSettings({ enabled: discordEnabled, clientId: clientId.trim() });
+    await window.amethyst.discord.setSettings({
+      enabled: discordEnabled,
+      clientId: clientId.trim(),
+      showLyrics
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -88,6 +94,19 @@ export default function Settings({ onClose }: { onClose: () => void }) {
           <label>Discord Application Client ID</label>
           <input value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="123456789012345678" />
         </div>
+        <div className="checkbox-row" style={{ margin: "12px 0" }}>
+          <input
+            type="checkbox"
+            id="discord-lyrics"
+            checked={showLyrics}
+            onChange={(e) => setShowLyrics(e.target.checked)}
+          />
+          <label htmlFor="discord-lyrics">Show live lyrics instead of the album name</label>
+        </div>
+        <p className="hint-text" style={{ textAlign: "left", marginTop: -6, marginBottom: 10 }}>
+          Looks up synced lyrics for the current track (via lrclib.net) and shows the current line where the album
+          name normally goes, when available.
+        </p>
         <button className="btn-primary" onClick={save}>
           {saved ? "Saved ✓" : "Save"}
         </button>

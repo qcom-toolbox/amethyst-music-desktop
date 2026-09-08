@@ -6,7 +6,7 @@ import * as appSettings from "./appSettings";
 import * as credentials from "./credentials";
 import { discordRpc } from "./discordRpc";
 import * as webIntegration from "./webIntegration";
-import { connectToServer as navigateToServer, openSettingsWindow } from "./windowManager";
+import { connectToServer as navigateToServer, getWindow, openSettingsWindow } from "./windowManager";
 
 export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.listServers, () => servers.listServers());
@@ -43,14 +43,26 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC.getDiscordSettings, async (): Promise<DiscordSettings> => {
     const settings = await appSettings.getSettings();
-    return { enabled: settings.discordEnabled, clientId: settings.discordClientId };
+    return {
+      enabled: settings.discordEnabled,
+      clientId: settings.discordClientId,
+      showLyrics: settings.discordShowLyrics
+    };
   });
 
   ipcMain.handle(IPC.setDiscordSettings, async (_e, next: DiscordSettings) => {
-    await appSettings.updateSettings({ discordEnabled: next.enabled, discordClientId: next.clientId });
+    await appSettings.updateSettings({
+      discordEnabled: next.enabled,
+      discordClientId: next.clientId,
+      discordShowLyrics: next.showLyrics
+    });
     if (next.clientId) discordRpc.setClientId(next.clientId);
+    discordRpc.setShowLyrics(next.showLyrics);
     if (next.enabled && next.clientId) discordRpc.enable();
     else discordRpc.disable();
+    // Lets the lyrics lookup turn on/off immediately on whatever server page is
+    // currently loaded, instead of only taking effect on the next reconnect.
+    webIntegration.setShowLyricsOnPage(getWindow(), next.enabled && next.showLyrics);
   });
 
   ipcMain.handle(IPC.getDiscordStatus, (): DiscordRpcStatus => discordRpc.getStatus());
@@ -72,5 +84,6 @@ export function registerIpcHandlers(): void {
 export async function initDiscordFromSettings(): Promise<void> {
   const settings = await appSettings.getSettings();
   if (settings.discordClientId) discordRpc.setClientId(settings.discordClientId);
+  discordRpc.setShowLyrics(settings.discordShowLyrics);
   if (settings.discordEnabled && settings.discordClientId) discordRpc.enable();
 }

@@ -7,6 +7,7 @@
 // element and, at most, click its own real login button.
 import { BrowserWindow, dialog } from "electron";
 import type { NowPlaying, ServerConfig } from "../shared/types";
+import * as appSettings from "./appSettings";
 import * as credentials from "./credentials";
 import { discordRpc } from "./discordRpc";
 
@@ -27,6 +28,23 @@ function autofillScript(username: string, password: string): string {
     btn.click();
     return true;
   })();`;
+}
+
+/**
+ * Toggles whether the poller looks up synced lyrics at all (see pollerScript()
+ * below) — read fresh on every poll tick via a page-global, so it can be pushed
+ * live from Settings without needing to reload/reconnect. `window.amethyst` isn't
+ * available on this (untrusted, third-party) page, so a plain global is used
+ * instead of IPC round-tripping for something this cheap to just poke directly.
+ */
+function setShowLyricsScript(value: boolean): string {
+  return `window.__amethystShowLyrics = ${JSON.stringify(Boolean(value))};`;
+}
+
+/** Pushes a live update of the "show lyrics" setting into the currently loaded server page, if any. No-op if nothing is loaded yet — the next handlePageLoad() picks up the current setting anyway. */
+export function setShowLyricsOnPage(win: BrowserWindow | null, value: boolean): void {
+  if (!win || win.isDestroyed()) return;
+  void win.webContents.executeJavaScript(setShowLyricsScript(value)).catch(() => {});
 }
 
 /** Captures whatever the user types into the real login form, once, so we can offer to save it after a successful login — never sent anywhere but back to our own main process. */
@@ -63,6 +81,56 @@ function pollerScript(): string {
 
     const audio = document.getElementById('mainAudio');
     let lastMetaKey = '';
+
+    // Optional synced-lyrics lookup for Discord (see setShowLyricsOnPage() /
+    // window.__amethystShowLyrics), off by default. Queries lrclib.net directly —
+    // the same free, keyless API and LRC format the server's own lyrics panel
+    // uses — and caches results per track for the rest of the session so it's at
+    // most one request per track, not one per poll tick.
+    const lyricsCache = (window.__amethystLyricsCache = window.__amethystLyricsCache || {});
+    const lyricsPending = (window.__amethystLyricsPending = window.__amethystLyricsPending || {});
+
+    function parseLrc(text) {
+      const lines = [];
+      const re = /\\[(\\d{2}):(\\d{2})(?:[.:](\\d{1,3}))?\\](.*)/;
+      text.split('\\n').forEach(function(line) {
+        const m = line.match(re);
+        if (!m) return;
+        const min = parseInt(m[1], 10), sec = parseInt(m[2], 10);
+        const ms = m[3] ? parseInt(m[3].padEnd(3, '0'), 10) : 0;
+        const content = m[4].trim();
+        if (content) lines.push({ time: min * 60 + sec + ms / 1000, text: content });
+      });
+      lines.sort(function(a, b) { return a.time - b.time; });
+      return lines;
+    }
+
+    function currentLyricLine(artist, title, position) {
+      if (!window.__amethystShowLyrics || !artist || !title) return null;
+      const key = artist + '::' + title;
+      if (!(key in lyricsCache)) {
+        if (!lyricsPending[key]) {
+          lyricsPending[key] = true;
+          const url = 'https://lrclib.net/api/get?artist_name=' + encodeURIComponent(artist) + '&track_name=' + encodeURIComponent(title);
+          fetch(url, { headers: { Accept: 'application/json' } })
+            .then(function(res) { return res.ok ? res.json() : null; })
+            .then(function(json) {
+              const lrc = (json && json.syncedLyrics) || '';
+              lyricsCache[key] = lrc ? parseLrc(lrc) : null;
+            })
+            .catch(function() { lyricsCache[key] = null; })
+            .then(function() { delete lyricsPending[key]; });
+        }
+        return null;
+      }
+      const lines = lyricsCache[key];
+      if (!lines || !lines.length) return null;
+      let active = null;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].time <= position) active = lines[i]; else break;
+      }
+      return active ? active.text : null;
+    }
 
     log('mainAudio found: ' + Boolean(audio) + ', mediaSession available: ' + ('mediaSession' in navigator));
 
@@ -109,6 +177,8 @@ function pollerScript(): string {
       const artist = (statusParts[0] || '').trim();
       const album = (statusParts[1] || '').trim();
       const cover = (coverEl && coverEl.src) || '';
+      const position = audio.currentTime || 0;
+      const lyric = currentLyricLine(artist, title, position);
 
       if (window.__amethystReporter) {
         window.__amethystReporter.nowPlaying({
@@ -117,8 +187,9 @@ function pollerScript(): string {
           album: album,
           cover: cover,
           isPlaying: !audio.paused,
-          position: audio.currentTime || 0,
-          duration: audio.duration || 0
+          position: position,
+          duration: audio.duration || 0,
+          lyric: lyric
         });
       }
 
@@ -204,6 +275,10 @@ export async function handlePageLoad(win: BrowserWindow, server: ServerConfig): 
         if (response === 0) await credentials.saveAccount(server.id, captured.username, captured.password);
       }
     }
+    const settings = await appSettings.getSettings();
+    void wc
+      .executeJavaScript(setShowLyricsScript(settings.discordEnabled && settings.discordShowLyrics))
+      .catch(() => {});
     void wc.executeJavaScript(pollerScript()).catch(() => {});
     return;
   }

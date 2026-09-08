@@ -7,6 +7,8 @@ export interface ServerConfig {
 export interface DiscordSettings {
   enabled: boolean;
   clientId: string;
+  /** Show the currently-playing synced lyric line in place of the album name (hover tooltip on the cover art). */
+  showLyrics: boolean;
 }
 
 export interface DiscordRpcStatus {
@@ -25,4 +27,6 @@ export interface NowPlaying {
   isPlaying: boolean;
   position: number;
   duration: number;
+  /** Current synced lyric line at `position`, if lyrics lookup is enabled and a match was found. */
+  lyric: string | null;
 }

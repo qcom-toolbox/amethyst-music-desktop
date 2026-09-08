@@ -5,12 +5,14 @@ import path from "node:path";
 export interface AppSettings {
   discordEnabled: boolean;
   discordClientId: string;
+  discordShowLyrics: boolean;
   lastServerId: string | null;
 }
 
 const DEFAULTS: AppSettings = {
   discordEnabled: false,
   discordClientId: "",
+  discordShowLyrics: false,
   lastServerId: null
 };
 

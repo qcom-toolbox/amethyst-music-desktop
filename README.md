@@ -40,7 +40,11 @@ by reading the page's own DOM (never by modifying its code):
   integration uses; no pre-uploaded "Art Asset" needed) — over a hand-rolled
   IPC client (no `discord-rpc` package). See
   [`src/main/webIntegration.ts`](src/main/webIntegration.ts) and
-  [`src/main/discordRpc.ts`](src/main/discordRpc.ts).
+  [`src/main/discordRpc.ts`](src/main/discordRpc.ts). Optionally (off by
+  default — toggle "Show live lyrics instead of the album name" in Settings),
+  the current synced lyric line takes over the cover art's hover-tooltip line
+  in place of the album name, looked up from [lrclib.net](https://lrclib.net)
+  the same way the website's own lyrics panel does.
 
 Because everything else — browsing, playback, playlists, the fullscreen
 player, themes, synced lyrics — is just the website itself, all of it works
