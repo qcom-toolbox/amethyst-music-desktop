@@ -82,54 +82,27 @@ function pollerScript(): string {
     const audio = document.getElementById('mainAudio');
     let lastMetaKey = '';
 
-    // Optional synced-lyrics lookup for Discord (see setShowLyricsOnPage() /
-    // window.__amethystShowLyrics), off by default. Queries lrclib.net directly —
-    // the same free, keyless API and LRC format the server's own lyrics panel
-    // uses — and caches results per track for the rest of the session so it's at
-    // most one request per track, not one per poll tick.
-    const lyricsCache = (window.__amethystLyricsCache = window.__amethystLyricsCache || {});
-    const lyricsPending = (window.__amethystLyricsPending = window.__amethystLyricsPending || {});
-
-    function parseLrc(text) {
-      const lines = [];
-      const re = /\\[(\\d{2}):(\\d{2})(?:[.:](\\d{1,3}))?\\](.*)/;
-      text.split('\\n').forEach(function(line) {
-        const m = line.match(re);
-        if (!m) return;
-        const min = parseInt(m[1], 10), sec = parseInt(m[2], 10);
-        const ms = m[3] ? parseInt(m[3].padEnd(3, '0'), 10) : 0;
-        const content = m[4].trim();
-        if (content) lines.push({ time: min * 60 + sec + ms / 1000, text: content });
-      });
-      lines.sort(function(a, b) { return a.time - b.time; });
-      return lines;
-    }
-
-    function currentLyricLine(artist, title, position) {
-      if (!window.__amethystShowLyrics || !artist || !title) return null;
-      const key = artist + '::' + title;
-      if (!(key in lyricsCache)) {
-        if (!lyricsPending[key]) {
-          lyricsPending[key] = true;
-          const url = 'https://lrclib.net/api/get?artist_name=' + encodeURIComponent(artist) + '&track_name=' + encodeURIComponent(title);
-          fetch(url, { headers: { Accept: 'application/json' } })
-            .then(function(res) { return res.ok ? res.json() : null; })
-            .then(function(json) {
-              const lrc = (json && json.syncedLyrics) || '';
-              lyricsCache[key] = lrc ? parseLrc(lrc) : null;
-            })
-            .catch(function() { lyricsCache[key] = null; })
-            .then(function() { delete lyricsPending[key]; });
-        }
-        return null;
-      }
-      const lines = lyricsCache[key];
-      if (!lines || !lines.length) return null;
+    // Optional synced-lyrics line for Discord (see setShowLyricsOnPage() /
+    // window.__amethystShowLyrics), off by default. This never fetches lyrics
+    // itself — it only reads whatever the page's own fullscreen-player Lyrics
+    // panel has already fetched and rendered (renderLyricsRaw() in the server's
+    // index.php writes .lyric-line[data-time] elements into #lyrics-content),
+    // so nothing is looked up until the user opens that panel for themselves.
+    // #lyricsBtn gets Amethyst's own 'active' class exactly while that panel is
+    // open (syncFpHeaderButtons() in index.php), which doubles as our signal.
+    function currentLyricLine(position) {
+      if (!window.__amethystShowLyrics) return null;
+      const btn = document.getElementById('lyricsBtn');
+      if (!btn || !btn.classList.contains('active')) return null;
+      const lines = document.querySelectorAll('#lyrics-content .lyric-line');
+      if (!lines.length) return null;
       let active = null;
       for (let i = 0; i < lines.length; i++) {
-        if (lines[i].time <= position) active = lines[i]; else break;
+        const t = parseFloat(lines[i].getAttribute('data-time'));
+        if (isNaN(t) || t > position) break;
+        active = lines[i];
       }
-      return active ? active.text : null;
+      return active ? active.textContent : null;
     }
 
     log('mainAudio found: ' + Boolean(audio) + ', mediaSession available: ' + ('mediaSession' in navigator));
@@ -178,7 +151,7 @@ function pollerScript(): string {
       const album = (statusParts[1] || '').trim();
       const cover = (coverEl && coverEl.src) || '';
       const position = audio.currentTime || 0;
-      const lyric = currentLyricLine(artist, title, position);
+      const lyric = currentLyricLine(position);
 
       if (window.__amethystReporter) {
         window.__amethystReporter.nowPlaying({

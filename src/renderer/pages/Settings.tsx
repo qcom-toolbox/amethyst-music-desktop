@@ -104,8 +104,8 @@ export default function Settings({ onClose }: { onClose: () => void }) {
           <label htmlFor="discord-lyrics">Show live lyrics instead of the album name</label>
         </div>
         <p className="hint-text" style={{ textAlign: "left", marginTop: -6, marginBottom: 10 }}>
-          Looks up synced lyrics for the current track (via lrclib.net) and shows the current line where the album
-          name normally goes, when available.
+          Nothing is looked up on its own — this only shows the current line where the album name normally goes once
+          you've opened the Lyrics tab in the fullscreen player for a track that has synced lyrics.
         </p>
         <button className="btn-primary" onClick={save}>
           {saved ? "Saved ✓" : "Save"}

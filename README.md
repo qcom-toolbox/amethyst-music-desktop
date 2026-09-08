@@ -43,8 +43,10 @@ by reading the page's own DOM (never by modifying its code):
   [`src/main/discordRpc.ts`](src/main/discordRpc.ts). Optionally (off by
   default — toggle "Show live lyrics instead of the album name" in Settings),
   the current synced lyric line takes over the cover art's hover-tooltip line
-  in place of the album name, looked up from [lrclib.net](https://lrclib.net)
-  the same way the website's own lyrics panel does.
+  in place of the album name — read from whatever the fullscreen player's own
+  Lyrics tab has already fetched and rendered, so nothing is looked up on its
+  own; it only shows once you've opened that tab for a track that has synced
+  lyrics.
 
 Because everything else — browsing, playback, playlists, the fullscreen
 player, themes, synced lyrics — is just the website itself, all of it works
