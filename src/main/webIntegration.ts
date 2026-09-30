@@ -1,10 +1,13 @@
 // Drives the "tweaks" layered on top of the real Amethyst Music web UI once it's
 // loaded directly into the window: detecting the server's own login page and
 // auto-filling it from a saved credential, offering to save a credential after a
-// successful first-time manual login, and polling the page's own now-playing DOM
-// (it already renders everything we need) to drive Discord Rich Presence. No
-// reimplementation of the web app's own UI/JS — we only ever read its DOM/audio
-// element and, at most, click its own real login button.
+// successful first-time manual login, polling the page's own now-playing DOM (it
+// already renders everything we need) to drive Discord Rich Presence and the
+// local song-info API server, and exposing basic playback control (play/pause/
+// seek/skip) for that same API server to call. No reimplementation of the web
+// app's own UI/JS — we only ever read its DOM/audio element and, at most, click
+// its own real login/play/pause/skip buttons (or call the same functions those
+// buttons call).
 import { BrowserWindow, dialog } from "electron";
 import type { NowPlaying, ServerConfig } from "../shared/types";
 import * as appSettings from "./appSettings";
@@ -46,6 +49,39 @@ function setShowLyricsScript(value: boolean): string {
 export function setShowLyricsOnPage(win: BrowserWindow | null, value: boolean): void {
   if (!win || win.isDestroyed()) return;
   void win.webContents.executeJavaScript(setShowLyricsScript(value)).catch(() => {});
+}
+
+export type PlaybackAction = "play" | "pause" | "toggle" | "next" | "previous";
+
+/** The same #mainAudio element and prevTrack()/nextTrack() globals the MediaSession handlers in pollerScript() already use — see the comment there. */
+function playbackActionScript(action: PlaybackAction): string {
+  switch (action) {
+    case "play":
+      return `(function() { var a = document.getElementById('mainAudio'); if (a) a.play(); })();`;
+    case "pause":
+      return `(function() { var a = document.getElementById('mainAudio'); if (a) a.pause(); })();`;
+    case "toggle":
+      return `(function() { var a = document.getElementById('mainAudio'); if (a) { if (a.paused) a.play(); else a.pause(); } })();`;
+    case "next":
+      return `(function() { if (typeof window.nextTrack === 'function') window.nextTrack(); })();`;
+    case "previous":
+      return `(function() { if (typeof window.prevTrack === 'function') window.prevTrack(); })();`;
+  }
+}
+
+/** Triggered by the local song-info API server's POST /api/v1/{play,pause,toggle-play,next,previous}. No-op if nothing is loaded. */
+export function controlPlayback(win: BrowserWindow | null, action: PlaybackAction): void {
+  if (!win || win.isDestroyed()) return;
+  void win.webContents.executeJavaScript(playbackActionScript(action)).catch(() => {});
+}
+
+/** Triggered by the local song-info API server's POST /api/v1/seek-to. No-op if nothing is loaded. */
+export function seekPlayback(win: BrowserWindow | null, seconds: number): void {
+  if (!win || win.isDestroyed() || !Number.isFinite(seconds)) return;
+  const clamped = Math.max(0, seconds);
+  void win.webContents
+    .executeJavaScript(`(function() { var a = document.getElementById('mainAudio'); if (a) a.currentTime = ${clamped}; })();`)
+    .catch(() => {});
 }
 
 /** Captures whatever the user types into the real login form, once, so we can offer to save it after a successful login — never sent anywhere but back to our own main process. */

@@ -47,15 +47,20 @@ by reading the page's own DOM (never by modifying its code):
   Lyrics tab has already fetched and rendered, so nothing is looked up on its
   own; it only shows once you've opened that tab for a track that has synced
   lyrics.
-- **Song-info API server** (off by default, toggle in Settings): a tiny local
-  HTTP server exposing `GET /api/v1/song` — title, artist, album, and cover,
-  nothing else (no position, no remote control, no auth). It's the same shape
-  and default port (26538) as [Pear Music Desktop](https://github.com/pear-devs/pear-desktop)'s
-  own API server, so a companion app already built against Pear — like
+- **Song-info & control API server** (off by default, toggle in Settings): a
+  tiny local HTTP server exposing `GET /api/v1/song` (title, artist, album,
+  cover, elapsed seconds, paused state) and basic playback control —
+  `POST /api/v1/{play,pause,toggle-play,next,previous}` and
+  `POST /api/v1/seek-to` (`{"seconds": number}`). No queue, search, volume,
+  likes, or auth. Same routes and default port (26538) as
+  [Pear Music Desktop](https://github.com/pear-devs/pear-desktop)'s own API
+  server, so a companion app already built against Pear — like
   [Lyrics-Player-GUI](https://github.com/qcom-toolbox/Lyrics-Player-GUI) —
   works against this app too, unchanged. Built on Node's own `http` module
-  (no new dependency). Loopback-only (`127.0.0.1`), since it has no
-  authentication at all. See [`src/main/apiServer.ts`](src/main/apiServer.ts).
+  (no new dependency). Loopback-only (`127.0.0.1`),
+  since it has no authentication at all — anything running locally that knows
+  the port can read what's playing and control it.
+  See [`src/main/apiServer.ts`](src/main/apiServer.ts).
 
 Because everything else — browsing, playback, playlists, the fullscreen
 player, themes, synced lyrics — is just the website itself, all of it works

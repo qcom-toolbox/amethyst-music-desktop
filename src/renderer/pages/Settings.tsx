@@ -145,7 +145,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
         <StatusLine status={status} />
 
         <div style={{ borderTop: "1px solid var(--border)", marginTop: 24, paddingTop: 20 }}>
-          <h1 style={{ fontSize: "1.1em" }}>Song-Info API Server</h1>
+          <h1 style={{ fontSize: "1.1em" }}>Song-Info &amp; Control API Server</h1>
           <p className="track-artist" style={{ marginBottom: 10 }}>
             Lets a companion app on this computer — like{" "}
             <a
@@ -155,9 +155,10 @@ export default function Settings({ onClose }: { onClose: () => void }) {
             >
               Lyrics-Player-GUI
             </a>{" "}
-            — read what's currently playing: cover, title, artist, and album, nothing else (no playback position, no
-            remote control). Speaks the same <code>GET /api/v1/song</code> shape as Pear Music Desktop's API server,
-            so a companion app already built for Pear works against this app too, unchanged.
+            — read what's currently playing (cover, title, artist, album, elapsed time, paused state) and send basic
+            playback commands (play/pause/next/previous/seek). No queue, search, volume, likes, or auth. Speaks the
+            same routes as Pear Music Desktop's API server, so a companion app already built for Pear works against
+            this app too, unchanged.
           </p>
           <div className="checkbox-row" style={{ margin: "12px 0" }}>
             <input
@@ -178,7 +179,7 @@ export default function Settings({ onClose }: { onClose: () => void }) {
           </div>
           <p className="hint-text" style={{ textAlign: "left", marginTop: -6, marginBottom: 10 }}>
             Not authenticated — only reachable from this computer (localhost), but anything running locally that
-            knows the port can read it.
+            knows the port can read what's playing and control playback.
           </p>
           <button className="btn-primary" onClick={saveApiServer}>
             {apiServerSaved ? "Saved ✓" : "Save"}
