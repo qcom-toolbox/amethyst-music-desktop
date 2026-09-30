@@ -37,3 +37,26 @@ allowBuilds:
   # Only builds Squirrel-based Windows installers, which this project doesn't
   # use (electron-builder.yml targets nsis instead) — left disabled.
   electron-winstaller: false
+
+overrides:
+  brace-expansion@<1.1.19: ^1.1.19
+  brace-expansion@<1.1.20: ^1.1.20
+  brace-expansion@<1.1.21: ^1.1.21
+  brace-expansion@>=2.0.0 <2.1.5: ^2.1.5
+  brace-expansion@>=2.0.0 <2.1.6: ^2.1.6
+  brace-expansion@>=2.0.0 <2.1.7: ^2.1.7
+  brace-expansion@>=4.0.0 <5.0.10: ^5.0.10
+  brace-expansion@>=4.0.0 <5.0.11: ^5.0.11
+  brace-expansion@>=4.0.0 <5.0.12: ^5.0.12
+  fast-uri@>=3.0.0 <3.1.7: ^3.1.7
+  fast-uri@>=3.0.0 <3.1.8: ^3.1.8
+  js-yaml@>=4.0.0 <4.3.2: ^4.3.2
+  undici@<6.28.1: ^6.28.1
+  undici@>=6.25.0 <6.28.1: ^6.28.1
+  undici@>=6.7.0 <6.28.1: ^6.28.1
+  undici@>=7.0.0 <7.29.1: ^7.29.1
+  undici@>=7.1.0 <7.29.1: ^7.29.1
+  undici@>=7.11.0 <7.29.1: ^7.29.1
+  undici@>=7.15.0 <7.29.1: ^7.29.1
+  undici@>=7.24.1 <7.29.1: ^7.29.1
+  undici@>=7.28.0 <7.29.1: ^7.29.1
