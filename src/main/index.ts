@@ -59,7 +59,18 @@ function createWindow(): void {
       preload: path.join(__dirname, "..", "preload", "index.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: true,
+      // Electron/Chromium throttles a backgrounded renderer's timers hard by
+      // default (down to ~once/minute) once it's no longer "audible" — which a
+      // *paused* track isn't. That stalls the poller's setInterval in
+      // webIntegration.ts, which is what keeps calling
+      // navigator.mediaSession.setPositionState()/playbackState. Once those
+      // stop updating, macOS (and Chromium's own media-key routing) treats the
+      // session as stale: it drops out of the Control Center Now Playing
+      // widget, and the play button there stops reliably reaching our
+      // registered MediaSession action handler. Pausing is exactly when a user
+      // is likely to switch away to another window, so this hit constantly.
+      backgroundThrottling: false
     }
   });
   mainWindow = win;
