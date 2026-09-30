@@ -1,8 +1,9 @@
 import { app, ipcMain, session } from "electron";
 import { IPC } from "../shared/ipcChannels";
-import type { DiscordRpcStatus, DiscordSettings, NowPlaying } from "../shared/types";
+import type { ApiServerSettings, ApiServerStatus, DiscordRpcStatus, DiscordSettings, NowPlaying } from "../shared/types";
 import * as servers from "./servers";
 import * as appSettings from "./appSettings";
+import * as apiServer from "./apiServer";
 import * as credentials from "./credentials";
 import { discordRpc } from "./discordRpc";
 import * as webIntegration from "./webIntegration";
@@ -67,6 +68,19 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC.getDiscordStatus, (): DiscordRpcStatus => discordRpc.getStatus());
 
+  ipcMain.handle(IPC.getApiServerSettings, async (): Promise<ApiServerSettings> => {
+    const settings = await appSettings.getSettings();
+    return { enabled: settings.apiServerEnabled, port: settings.apiServerPort };
+  });
+
+  ipcMain.handle(IPC.setApiServerSettings, async (_e, next: ApiServerSettings) => {
+    await appSettings.updateSettings({ apiServerEnabled: next.enabled, apiServerPort: next.port });
+    if (next.enabled) apiServer.start(next.port);
+    else apiServer.stop();
+  });
+
+  ipcMain.handle(IPC.getApiServerStatus, (): ApiServerStatus => apiServer.getStatus());
+
   ipcMain.handle(IPC.getAppVersion, () => app.getVersion());
 
   ipcMain.handle(IPC.openSettingsWindow, () => openSettingsWindow());
@@ -86,4 +100,9 @@ export async function initDiscordFromSettings(): Promise<void> {
   if (settings.discordClientId) discordRpc.setClientId(settings.discordClientId);
   discordRpc.setShowLyrics(settings.discordShowLyrics);
   if (settings.discordEnabled && settings.discordClientId) discordRpc.enable();
+}
+
+export async function initApiServerFromSettings(): Promise<void> {
+  const settings = await appSettings.getSettings();
+  if (settings.apiServerEnabled) apiServer.start(settings.apiServerPort);
 }

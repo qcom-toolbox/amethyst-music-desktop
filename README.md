@@ -47,6 +47,15 @@ by reading the page's own DOM (never by modifying its code):
   Lyrics tab has already fetched and rendered, so nothing is looked up on its
   own; it only shows once you've opened that tab for a track that has synced
   lyrics.
+- **Song-info API server** (off by default, toggle in Settings): a tiny local
+  HTTP server exposing `GET /api/v1/song` — title, artist, album, and cover,
+  nothing else (no position, no remote control, no auth). It's the same shape
+  and default port (26538) as [Pear Music Desktop](https://github.com/pear-devs/pear-desktop)'s
+  own API server, so a companion app already built against Pear — like
+  [Lyrics-Player-GUI](https://github.com/qcom-toolbox/Lyrics-Player-GUI) —
+  works against this app too, unchanged. Built on Node's own `http` module
+  (no new dependency). Loopback-only (`127.0.0.1`), since it has no
+  authentication at all. See [`src/main/apiServer.ts`](src/main/apiServer.ts).
 
 Because everything else — browsing, playback, playlists, the fullscreen
 player, themes, synced lyrics — is just the website itself, all of it works
@@ -144,6 +153,8 @@ src/
     servers.ts          Saved server list (JSON in userData).
     credentials.ts      safeStorage-encrypted saved logins.
     discordRpc.ts       Hand-rolled Discord IPC client.
+    nowPlayingStore.ts  Latest now-playing info, shared by discordRpc and apiServer.
+    apiServer.ts        Local, read-only song-info HTTP server (Pear-compatible).
     ipc.ts              IPC handlers for the server-picker shell UI.
   preload/    Two different contextBridge surfaces depending on what's
               loaded — see "Security" above.

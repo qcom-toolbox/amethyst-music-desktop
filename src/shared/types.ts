@@ -11,6 +11,16 @@ export interface DiscordSettings {
   showLyrics: boolean;
 }
 
+export interface ApiServerSettings {
+  enabled: boolean;
+  port: number;
+}
+
+export interface ApiServerStatus {
+  running: boolean;
+  lastError: string | null;
+}
+
 export interface DiscordRpcStatus {
   enabled: boolean;
   state: "idle" | "connecting" | "connected";

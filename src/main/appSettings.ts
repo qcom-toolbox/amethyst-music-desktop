@@ -6,6 +6,8 @@ export interface AppSettings {
   discordEnabled: boolean;
   discordClientId: string;
   discordShowLyrics: boolean;
+  apiServerEnabled: boolean;
+  apiServerPort: number;
   lastServerId: string | null;
 }
 
@@ -13,6 +15,8 @@ const DEFAULTS: AppSettings = {
   discordEnabled: false,
   discordClientId: "",
   discordShowLyrics: false,
+  apiServerEnabled: false,
+  apiServerPort: 26538,
   lastServerId: null
 };
 

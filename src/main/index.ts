@@ -1,6 +1,6 @@
 import { app, BrowserWindow, Menu, nativeImage, session, shell } from "electron";
 import path from "node:path";
-import { registerIpcHandlers, initDiscordFromSettings } from "./ipc";
+import { registerIpcHandlers, initDiscordFromSettings, initApiServerFromSettings } from "./ipc";
 import { openSettingsWindow, setWindow, showServerPicker } from "./windowManager";
 
 // Two distinct icon designs on purpose (see build/README.md): build/icon.png is
@@ -149,6 +149,7 @@ if (!gotLock) {
     if (process.platform === "darwin" && !dockIcon.isEmpty()) app.dock?.setIcon(dockIcon);
     registerIpcHandlers();
     await initDiscordFromSettings();
+    await initApiServerFromSettings();
     buildMenu();
     createWindow();
 

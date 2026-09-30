@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { DiscordRpcStatus } from "../../shared/types";
+import type { ApiServerStatus, DiscordRpcStatus } from "../../shared/types";
 
 function StatusLine({ status }: { status: DiscordRpcStatus | null }) {
   if (!status || !status.enabled) return null;
@@ -24,6 +24,19 @@ function StatusLine({ status }: { status: DiscordRpcStatus | null }) {
   );
 }
 
+function ApiServerStatusLine({ enabled, status }: { enabled: boolean; status: ApiServerStatus | null }) {
+  if (!enabled || !status) return null;
+
+  const color = status.lastError ? "var(--danger)" : status.running ? "#2ecc71" : "var(--text-muted)";
+  const text = status.lastError ? status.lastError : status.running ? "Running ✓" : "Starting…";
+
+  return (
+    <p className="hint-text" style={{ color, textAlign: "left", marginTop: 8 }}>
+      {text}
+    </p>
+  );
+}
+
 export default function Settings({ onClose }: { onClose: () => void }) {
   const [discordEnabled, setDiscordEnabled] = useState(false);
   const [clientId, setClientId] = useState("");
@@ -32,11 +45,20 @@ export default function Settings({ onClose }: { onClose: () => void }) {
   const [saved, setSaved] = useState(false);
   const [status, setStatus] = useState<DiscordRpcStatus | null>(null);
 
+  const [apiServerEnabled, setApiServerEnabled] = useState(false);
+  const [apiServerPort, setApiServerPort] = useState("26538");
+  const [apiServerSaved, setApiServerSaved] = useState(false);
+  const [apiServerStatus, setApiServerStatus] = useState<ApiServerStatus | null>(null);
+
   useEffect(() => {
     void window.amethyst.discord.getSettings().then((s) => {
       setDiscordEnabled(s.enabled);
       setClientId(s.clientId);
       setShowLyrics(s.showLyrics);
+    });
+    void window.amethyst.apiServer.getSettings().then((s) => {
+      setApiServerEnabled(s.enabled);
+      setApiServerPort(String(s.port));
     });
     void window.amethyst.app.getVersion().then(setVersion);
   }, []);
@@ -46,6 +68,9 @@ export default function Settings({ onClose }: { onClose: () => void }) {
     const poll = () => {
       void window.amethyst.discord.getStatus().then((s) => {
         if (!cancelled) setStatus(s);
+      });
+      void window.amethyst.apiServer.getStatus().then((s) => {
+        if (!cancelled) setApiServerStatus(s);
       });
     };
     poll();
@@ -66,11 +91,18 @@ export default function Settings({ onClose }: { onClose: () => void }) {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const saveApiServer = async () => {
+    const port = parseInt(apiServerPort, 10) || 26538;
+    await window.amethyst.apiServer.setSettings({ enabled: apiServerEnabled, port });
+    setApiServerSaved(true);
+    setTimeout(() => setApiServerSaved(false), 2000);
+  };
+
   return (
     <div className="center-screen">
       <div className="auth-card" style={{ width: 440 }}>
         <h1>Settings</h1>
-        <p className="subtitle">Discord Rich Presence &amp; app info.</p>
+        <p className="subtitle">Discord Rich Presence, the song-info API server, &amp; app info.</p>
 
         <p className="track-artist" style={{ marginBottom: 10 }}>
           Show what you're listening to on your Discord profile. Create a free application at{" "}
@@ -111,6 +143,48 @@ export default function Settings({ onClose }: { onClose: () => void }) {
           {saved ? "Saved ✓" : "Save"}
         </button>
         <StatusLine status={status} />
+
+        <div style={{ borderTop: "1px solid var(--border)", marginTop: 24, paddingTop: 20 }}>
+          <h1 style={{ fontSize: "1.1em" }}>Song-Info API Server</h1>
+          <p className="track-artist" style={{ marginBottom: 10 }}>
+            Lets a companion app on this computer — like{" "}
+            <a
+              href="https://github.com/qcom-toolbox/Lyrics-Player-GUI"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Lyrics-Player-GUI
+            </a>{" "}
+            — read what's currently playing: cover, title, artist, and album, nothing else (no playback position, no
+            remote control). Speaks the same <code>GET /api/v1/song</code> shape as Pear Music Desktop's API server,
+            so a companion app already built for Pear works against this app too, unchanged.
+          </p>
+          <div className="checkbox-row" style={{ margin: "12px 0" }}>
+            <input
+              type="checkbox"
+              id="apiserver-enabled"
+              checked={apiServerEnabled}
+              onChange={(e) => setApiServerEnabled(e.target.checked)}
+            />
+            <label htmlFor="apiserver-enabled">Enable the song-info API server</label>
+          </div>
+          <div className="field">
+            <label>Port</label>
+            <input
+              value={apiServerPort}
+              onChange={(e) => setApiServerPort(e.target.value.replace(/\D/g, ""))}
+              placeholder="26538"
+            />
+          </div>
+          <p className="hint-text" style={{ textAlign: "left", marginTop: -6, marginBottom: 10 }}>
+            Not authenticated — only reachable from this computer (localhost), but anything running locally that
+            knows the port can read it.
+          </p>
+          <button className="btn-primary" onClick={saveApiServer}>
+            {apiServerSaved ? "Saved ✓" : "Save"}
+          </button>
+          <ApiServerStatusLine enabled={apiServerEnabled} status={apiServerStatus} />
+        </div>
 
         <div style={{ borderTop: "1px solid var(--border)", marginTop: 24, paddingTop: 20, textAlign: "center" }}>
           <img src="./icon.png" alt="" style={{ width: 56, height: 56, borderRadius: 14, marginBottom: 8 }} />

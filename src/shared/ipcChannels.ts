@@ -12,6 +12,11 @@ export const IPC = {
   setDiscordSettings: "discord:setSettings",
   getDiscordStatus: "discord:getStatus",
 
+  // Local song-info API server (Pear Music Desktop-compatible GET /api/v1/song)
+  getApiServerSettings: "apiServer:getSettings",
+  setApiServerSettings: "apiServer:setSettings",
+  getApiServerStatus: "apiServer:getStatus",
+
   // App
   getAppVersion: "app:version",
   openSettingsWindow: "app:openSettings",

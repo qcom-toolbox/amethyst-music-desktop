@@ -10,6 +10,7 @@ import type { NowPlaying, ServerConfig } from "../shared/types";
 import * as appSettings from "./appSettings";
 import * as credentials from "./credentials";
 import { discordRpc } from "./discordRpc";
+import { setNowPlaying } from "./nowPlayingStore";
 
 function isLoginPageScript(): string {
   return `document.body.classList.contains('login-page')`;
@@ -213,6 +214,7 @@ export function reportLoginCapture(username: string, password: string): void {
 }
 
 export function reportNowPlaying(data: NowPlaying | null): void {
+  setNowPlaying(data && data.title ? data : null);
   if (!data || !data.title) {
     discordRpc.clearActivity();
     return;
